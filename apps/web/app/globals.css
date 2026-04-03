@@ -104,10 +104,14 @@ select {
   margin-bottom: 20px;
 }
 
+.workspace-brief-grid--compact {
+  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.95fr);
+}
+
 .workspace-brief-card {
   display: grid;
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  padding: 16px;
   border-radius: 24px;
   border: 1px solid var(--line);
   background:
@@ -124,12 +128,12 @@ select {
 
 .workspace-brief-head {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .workspace-brief-head h3 {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   letter-spacing: -0.03em;
 }
 
@@ -142,8 +146,8 @@ select {
 .workspace-template-card {
   display: grid;
   gap: 6px;
-  min-height: 118px;
-  padding: 14px;
+  min-height: 94px;
+  padding: 12px;
   border-radius: 18px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.03);
@@ -182,10 +186,14 @@ select {
   gap: 10px;
 }
 
+.workspace-package-grid--dense {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .workspace-package-metric {
   display: grid;
   gap: 4px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 16px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.03);
@@ -199,7 +207,7 @@ select {
 }
 
 .workspace-package-metric strong {
-  font-size: 22px;
+  font-size: 20px;
   letter-spacing: -0.03em;
 }
 
@@ -348,7 +356,7 @@ select {
 
 .section-stack {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .field-grid {
@@ -755,7 +763,7 @@ select {
 .paint-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .paint-swatches {
@@ -971,12 +979,12 @@ select {
 }
 
 .summary-panel--compact {
-  padding: 18px;
+  padding: 16px;
 }
 
 .summary-metric.compact {
-  padding: 12px;
-  min-height: 90px;
+  padding: 10px;
+  min-height: 76px;
 }
 
 .summary-metric.compact .summary-metric-value {
@@ -1404,7 +1412,8 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .workspace-metrics {
+  .workspace-metrics,
+  .workspace-package-grid--dense {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1440,6 +1449,7 @@ select {
   .workspace-field-grid,
   .summary-grid,
   .workspace-metrics,
+  .workspace-package-grid--dense,
   .paint-swatches,
   .workspace-package-grid,
   .product-hero-highlights,

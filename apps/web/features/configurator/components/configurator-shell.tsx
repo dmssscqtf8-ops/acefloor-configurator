@@ -331,6 +331,7 @@ export function ConfiguratorShell({
       ? `${estimate.boxesRequired} boites de ${selectedProduct.tilesPerBox} tuiles couvrent environ ${estimate.orderedBoxCoverageSqFt.toFixed(1)} pi², soit ${estimate.coverageOverageSqFt.toFixed(1)} pi² de marge due au conditionnement`
       : "Aucune boite requise pour le moment";
   const tileFormatLabel = `${selectedProduct.tileWidthIn}" x ${selectedProduct.tileHeightIn}"`;
+  const projectLabel = currentTemplate?.label ?? "Projet sur mesure";
 
   const handleExportReady = useCallback((dataUrl: string) => {
     const link = document.createElement("a");
@@ -414,7 +415,7 @@ export function ConfiguratorShell({
         </div>
       </section>
 
-      <section className="workspace-brief-grid" aria-label="Lancement rapide">
+      <section className="workspace-brief-grid workspace-brief-grid--compact" aria-label="Lancement rapide">
         <article className="workspace-brief-card workspace-brief-card--templates">
           <div className="workspace-brief-head">
             <span className="workspace-card-kicker">Depart rapide</span>
@@ -440,41 +441,29 @@ export function ConfiguratorShell({
           </div>
         </article>
 
-        <article className="workspace-brief-card">
+        <article className="workspace-brief-card workspace-brief-card--project">
           <div className="workspace-brief-head">
-            <span className="workspace-card-kicker">Reco instantanee</span>
-            <h3>{selectedProduct.name} semble juste pour ce projet</h3>
-          </div>
-          <div className="workspace-brief-stack">
+            <span className="workspace-card-kicker">Projet actif</span>
+            <h3>{projectLabel}</h3>
             <p className="muted-copy" style={{ margin: 0 }}>
               {projectStory}
             </p>
             <div className="tag-row">
+              <span className="tag">{selectedProduct.name}</span>
               <span className="tag">{selectedProduct.positioningLabel}</span>
-              <span className="tag">{selectedProduct.finishLabel}</span>
-              <span className="tag">{tileFormatLabel}</span>
-              <span className="tag">{selectedProduct.tileWeightGrams} g</span>
               <span className="tag">{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</span>
+              <span className="tag">
+                {includeInstallation ? "Pose incluse" : "Pose optionnelle"}
+              </span>
             </div>
           </div>
-        </article>
-
-        <article className="workspace-brief-card">
-          <div className="workspace-brief-head">
-            <span className="workspace-card-kicker">Package projet</span>
-            <h3>Ce que le commercial peut sortir tout de suite</h3>
-          </div>
-          <div className="workspace-package-grid">
+          <div className="workspace-package-grid workspace-package-grid--dense">
             <div className="workspace-package-metric">
-              <span>Surface utile</span>
-              <strong>{estimate.areaSqFt.toFixed(1)} pi²</strong>
-            </div>
-            <div className="workspace-package-metric">
-              <span>Surface facturable</span>
+              <span>Facturable</span>
               <strong>{estimate.billableAreaSqFt.toFixed(1)} pi²</strong>
             </div>
             <div className="workspace-package-metric">
-              <span>Tuiles facturees</span>
+              <span>Tuiles</span>
               <strong>{estimate.totalTiles}</strong>
             </div>
             <div className="workspace-package-metric">
@@ -486,15 +475,7 @@ export function ConfiguratorShell({
               <strong>{formatCurrency(estimate.tileSubtotal)}</strong>
             </div>
             <div className="workspace-package-metric">
-              <span>Pose</span>
-              <strong>
-                {includeInstallation
-                  ? formatCurrency(installationSubtotal)
-                  : "Option"}
-              </strong>
-            </div>
-            <div className="workspace-package-metric">
-              <span>Total projet</span>
+              <span>Total</span>
               <strong>{formatCurrency(projectTotal)}</strong>
             </div>
           </div>
@@ -507,17 +488,6 @@ export function ConfiguratorShell({
       <section className="main-grid main-grid--workspace">
         <aside className="control-panel control-panel--sticky">
           <div className="section-stack">
-            <section>
-              <h2 className="section-title">Modele actif</h2>
-              <div className="step-item compact">
-                <strong>{currentTemplate?.label ?? "Projet sur mesure"}</strong>
-                <span>
-                  {currentTemplate?.blurb ??
-                    "Configuration libre: dimensions, seuil, palette et decoupes ont ete adaptes au projet en cours."}
-                </span>
-              </div>
-            </section>
-
             <section>
               <h2 className="section-title">Dimensions</h2>
               <div className="field-grid two-up">
@@ -788,13 +758,11 @@ export function ConfiguratorShell({
             </div>
 
             <div className="paint-meta">
-              <span className="tag">Gamme: {selectedProduct.name}</span>
-              <span className="tag">Surface: {estimate.areaSqFt.toFixed(1)} pi²</span>
-              <span className="tag">Facturable: {estimate.billableAreaSqFt.toFixed(1)} pi²</span>
-              <span className="tag">Commande: {estimate.totalTiles} tuiles</span>
+              <span className="tag">Motif: {getLayoutLabel(layoutMode)}</span>
+              <span className="tag">
+                Palette: {primaryColor}{secondaryColor ? ` / ${secondaryColor}` : ""}
+              </span>
               <span className="tag">Plan: {paintedTileCount}</span>
-              <span className="tag">Materiau: {formatCurrency(estimate.tileSubtotal)}</span>
-              <span className="tag">Total: {formatCurrency(projectTotal)}</span>
             </div>
 
           </div>
@@ -1019,31 +987,9 @@ export function ConfiguratorShell({
               </div>
             </section>
 
-            <section className="workspace-product-spotlight">
-              <div className="workspace-card-head">
-                <span className="workspace-card-kicker">Lecture produit</span>
-                <strong>{selectedProduct.name}</strong>
-              </div>
-              <p className="muted-copy" style={{ margin: 0 }}>
-                {selectedProduct.heroSummary}
-              </p>
-              <div className="tag-row">
-                <span className="tag">{selectedProduct.positioningLabel}</span>
-                <span className="tag">{selectedProduct.finishLabel}</span>
-                <span className="tag">{selectedProduct.tilesPerBox} tuiles / boite</span>
-                <span className="tag">{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</span>
-              </div>
-            </section>
-
             <section className="summary-panel summary-panel--compact">
-              <h2 className="summary-title">Résumé</h2>
+              <h2 className="summary-title">Détails chantier</h2>
               <div className="summary-grid">
-                <div className="summary-metric compact">
-                  <span className="summary-metric-label">Tuiles facturees</span>
-                  <strong className="summary-metric-value">
-                    {estimate.totalTiles} tuiles
-                  </strong>
-                </div>
                 <div className="summary-metric compact">
                   <span className="summary-metric-label">Coupes plan</span>
                   <strong className="summary-metric-value">
@@ -1051,15 +997,21 @@ export function ConfiguratorShell({
                   </strong>
                 </div>
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Surface facturable</span>
+                  <span className="summary-metric-label">Edges porte</span>
                   <strong className="summary-metric-value">
-                    {estimate.billableAreaSqFt.toFixed(1)} pi²
+                    {estimate.garageDoorEdgeTotalPieces} pcs
                   </strong>
                 </div>
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Boites a sortir</span>
+                  <span className="summary-metric-label">Overage boite</span>
                   <strong className="summary-metric-value">
-                    {estimate.boxesRequired}
+                    {estimate.boxOverageTiles} tuiles
+                  </strong>
+                </div>
+                <div className="summary-metric compact">
+                  <span className="summary-metric-label">Hors pose</span>
+                  <strong className="summary-metric-value">
+                    {preview.excludedAreaSqFt.toFixed(1)} pi²
                   </strong>
                 </div>
                 <div className="summary-metric compact">
@@ -1081,10 +1033,6 @@ export function ConfiguratorShell({
                 {" "}| Rendement pose :{" "}
                 <strong>{estimate.layoutEfficiencyPercent.toFixed(1)}%</strong>
                 {" "}| Format : <strong>{tileFormatLabel}</strong>
-                {" "}| Edges porte :{" "}
-                <strong>{estimate.garageDoorEdgeTotalPieces} pcs</strong>
-                {" "}| Overage boite :{" "}
-                <strong>{estimate.boxOverageTiles} tuiles</strong>
                 {" "}| Offset porte :{" "}
                 <strong>
                   {fromInches(estimate.garageDoorOffsetIn, unit).toFixed(1)} {unit}
@@ -1136,7 +1084,6 @@ export function ConfiguratorShell({
                   Reset projet
                 </button>
               </div>
-              <p className="summary-note">{projectBrief}</p>
             </section>
           </div>
         </aside>
