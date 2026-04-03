@@ -219,18 +219,30 @@ select {
 
 .workspace-main {
   display: grid;
-  gap: 18px;
-}
-
-.workspace-sidepanels {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(244px, 0.8fr) minmax(0, 1.55fr) minmax(280px, 0.92fr);
+  grid-template-areas: "controls canvas catalog";
   gap: 18px;
   align-items: start;
 }
 
+.workspace-sidepanels {
+  display: contents;
+}
+
 .workspace-panel {
   min-width: 0;
+}
+
+.workspace-panel--controls {
+  grid-area: controls;
+}
+
+.workspace-panel--canvas {
+  grid-area: canvas;
+}
+
+.workspace-panel--catalog {
+  grid-area: catalog;
 }
 
 .page-header {
@@ -685,11 +697,15 @@ select {
 
 .canvas-workspace-shell {
   position: relative;
+  display: grid;
+  gap: 0;
+  min-width: 0;
 }
 
 .canvas-surface {
   position: relative;
   aspect-ratio: 16 / 10;
+  min-height: 480px;
   border-radius: 24px;
   border: 1px solid var(--line);
   background:
@@ -1570,13 +1586,18 @@ select {
   margin-top: 8px;
 }
 
+@media (max-width: 1360px) {
+  .workspace-main {
+    grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.36fr) minmax(252px, 0.84fr);
+  }
+}
+
 @media (max-width: 1200px) {
   .page-header,
   .main-grid,
   .workspace-header,
   .workspace-brief-grid,
   .workspace-dock,
-  .workspace-sidepanels,
   .page-intro-grid,
   .product-hero-grid,
   .product-catalog-card,
@@ -1595,6 +1616,16 @@ select {
   .workspace-metrics,
   .workspace-package-grid--dense {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1040px) {
+  .workspace-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "canvas"
+      "controls"
+      "catalog";
   }
 
   .canvas-overlay-dock {
@@ -1645,7 +1676,6 @@ select {
   .dimension-stepper-grid,
   .workspace-template-grid,
   .workspace-field-grid,
-  .workspace-sidepanels,
   .summary-grid,
   .workspace-metrics,
   .workspace-package-grid--dense,
@@ -1658,22 +1688,14 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .canvas-workspace-shell {
-    gap: 10px;
-  }
-
   .tool-rail {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .canvas-toolbar--workspace,
-  .inline-header {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .canvas-surface {
-    aspect-ratio: 1 / 1.02;
+    aspect-ratio: auto;
+    min-height: min(68svh, 520px);
   }
 
   .canvas-overlay-dock {
@@ -1681,11 +1703,17 @@ select {
   }
 
   .tool-rail-button {
-    min-height: 72px;
+    min-height: 64px;
+    padding: 8px 4px;
+  }
+
+  .tool-rail-icon {
+    width: 22px;
+    height: 22px;
   }
 
   .tool-rail-label {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .preset-strip {
@@ -1700,6 +1728,21 @@ select {
 
   .paint-meta {
     gap: 6px;
+  }
+
+  .paint-workbench {
+    margin-bottom: 12px;
+    padding: 12px;
+  }
+
+  .canvas-toolbar {
+    gap: 10px;
+  }
+
+  .canvas-toolbar--workspace,
+  .inline-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .workspace-main,

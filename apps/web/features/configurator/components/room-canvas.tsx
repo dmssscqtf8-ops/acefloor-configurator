@@ -60,6 +60,11 @@ type MeasureLine = {
   endY: number;
 };
 
+type CanvasSize = {
+  width: number;
+  height: number;
+};
+
 const colorMap: Record<string, string> = {
   Noir: "#111216",
   Charcoal: "#34363c",
@@ -93,7 +98,10 @@ export function RoomCanvas(props: RoomCanvasProps) {
   const stageRef = useRef<Konva.Stage | null>(null);
   const isPointerPaintingRef = useRef(false);
   const lastPaintedTileRef = useRef<string | null>(null);
-  const [width, setWidth] = useState(0);
+  const [canvasSize, setCanvasSize] = useState<CanvasSize>({
+    width: 0,
+    height: 0,
+  });
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
   const [draftMeasureLine, setDraftMeasureLine] = useState<MeasureLine | null>(null);
   const [measureLines, setMeasureLines] = useState<MeasureLine[]>([]);
@@ -103,8 +111,12 @@ export function RoomCanvas(props: RoomCanvasProps) {
 
     const node = hostRef.current;
     const observer = new ResizeObserver((entries) => {
-      const nextWidth = entries[0]?.contentRect.width ?? 0;
-      setWidth(nextWidth);
+      const rect = entries[0]?.contentRect;
+
+      setCanvasSize({
+        width: rect?.width ?? 0,
+        height: rect?.height ?? 0,
+      });
     });
 
     observer.observe(node);
@@ -127,12 +139,9 @@ export function RoomCanvas(props: RoomCanvasProps) {
     setMeasureLines([]);
   }, [props.clearMeasureRequestId]);
 
-  const stageWidth = Math.max(320, Math.floor(width));
-  const isCompactCanvas = stageWidth < 560;
-  const stageHeight = Math.max(
-    isCompactCanvas ? 500 : 420,
-    Math.floor(stageWidth * (isCompactCanvas ? 0.82 : 0.62)),
-  );
+  const stageWidth = Math.max(Math.floor(canvasSize.width), 0);
+  const stageHeight = Math.max(Math.floor(canvasSize.height), 0);
+  const isCompactCanvas = stageWidth < 720 || stageHeight < 520;
   const preview = buildRoomPreview({
     roomWidth: props.roomWidth,
     roomLength: props.roomLength,
@@ -150,9 +159,9 @@ export function RoomCanvas(props: RoomCanvasProps) {
     exteriorDoors: props.exteriorDoors,
   });
 
-  const paddingX = isCompactCanvas ? 24 : 42;
-  const paddingTop = isCompactCanvas ? 66 : 74;
-  const paddingBottom = isCompactCanvas ? 26 : 42;
+  const paddingX = isCompactCanvas ? 16 : 42;
+  const paddingTop = isCompactCanvas ? 52 : 74;
+  const paddingBottom = isCompactCanvas ? 18 : 42;
   const drawableWidth = Math.max(stageWidth - paddingX * 2, 1);
   const drawableHeight = Math.max(stageHeight - paddingTop - paddingBottom, 1);
   const scale = Math.min(
@@ -174,7 +183,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
   const garageDoorX = offsetX + preview.garageDoor.xIn * scale;
   const garageDoorWidthPx = preview.garageDoor.openingWidthIn * scale;
   const garageDoorHeightPx = preview.garageDoor.setbackDepthIn * scale;
-  const showLegend = !isCompactCanvas;
+  const showLegend = stageWidth >= 760 && stageHeight >= 540;
 
   const applyTilePaint = (tileKey: string) => {
     if (lastPaintedTileRef.current === tileKey) return;
@@ -275,7 +284,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
 
   return (
     <div ref={hostRef} className="room-canvas-root">
-      {stageWidth > 0 ? (
+      {stageWidth > 0 && stageHeight > 0 ? (
         <Stage
           ref={stageRef}
           width={stageWidth}

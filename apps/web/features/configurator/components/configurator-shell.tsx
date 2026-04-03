@@ -1257,7 +1257,7 @@ export function ConfiguratorShell({
         </section>
 
         <section className="workspace-sidepanels">
-          <aside className="control-panel workspace-panel workspace-panel--controls">
+          <aside className="control-panel control-panel--sticky workspace-panel workspace-panel--controls">
             {isMobileLayout ? (
               <WorkspaceFold
                 title="Configuration chantier"
@@ -1271,7 +1271,7 @@ export function ConfiguratorShell({
             )}
           </aside>
 
-          <aside className="catalog-panel workspace-panel workspace-panel--catalog">
+          <aside className="catalog-panel catalog-panel--sticky workspace-panel workspace-panel--catalog">
             {isMobileLayout ? (
               <WorkspaceFold
                 title="Produit & soumission"
