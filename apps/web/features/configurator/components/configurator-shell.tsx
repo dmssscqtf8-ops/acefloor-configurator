@@ -39,85 +39,6 @@ type ConfiguratorShellProps = {
   initialProductId?: string;
 };
 
-type ProjectTemplate = {
-  id: string;
-  label: string;
-  blurb: string;
-  roomWidth: number;
-  roomLength: number;
-  unit: "ft";
-  garageDoorEnabled: boolean;
-  garageDoorWidth: number;
-  garageDoorOffset: number;
-  productId: string;
-  primaryColor: string;
-  secondaryColor: string;
-  layoutMode: "solid" | "checker" | "border" | "manual";
-};
-
-const projectTemplates: ProjectTemplate[] = [
-  {
-    id: "single-garage",
-    label: "Garage simple",
-    blurb: "12 x 20 pi, ideal pour une mise en ligne rapide avec ratio budget / impact tres propre.",
-    roomWidth: 12,
-    roomLength: 20,
-    unit: "ft",
-    garageDoorEnabled: true,
-    garageDoorWidth: 9,
-    garageDoorOffset: 1.5,
-    productId: "acetrax",
-    primaryColor: "Noir",
-    secondaryColor: "Gris fonce",
-    layoutMode: "checker",
-  },
-  {
-    id: "double-garage",
-    label: "Garage double",
-    blurb: "20 x 24 pi, le cas commercial le plus frequemment demande pour un resultat premium residentiel.",
-    roomWidth: 20,
-    roomLength: 24,
-    unit: "ft",
-    garageDoorEnabled: true,
-    garageDoorWidth: 16,
-    garageDoorOffset: 2,
-    productId: "crown-series",
-    primaryColor: "Noir",
-    secondaryColor: "Charcoal",
-    layoutMode: "checker",
-  },
-  {
-    id: "showroom-bay",
-    label: "Baie showroom",
-    blurb: "24 x 30 pi, setup plus graphique avec lecture haut de gamme immediate pour vehicules d'exposition.",
-    roomWidth: 24,
-    roomLength: 30,
-    unit: "ft",
-    garageDoorEnabled: false,
-    garageDoorWidth: 0,
-    garageDoorOffset: 0,
-    productId: "crown-cubic",
-    primaryColor: "Noir",
-    secondaryColor: "Blanc",
-    layoutMode: "border",
-  },
-  {
-    id: "workshop-bay",
-    label: "Atelier performance",
-    blurb: "18 x 24 pi, plus robuste, plus technique, calibre pour la fonctionnalite avant tout.",
-    roomWidth: 18,
-    roomLength: 24,
-    unit: "ft",
-    garageDoorEnabled: true,
-    garageDoorWidth: 10,
-    garageDoorOffset: 4,
-    productId: "crown-grip",
-    primaryColor: "Charcoal",
-    secondaryColor: "Rouge",
-    layoutMode: "solid",
-  },
-];
-
 export function ConfiguratorShell({
   initialProductId,
 }: ConfiguratorShellProps) {
@@ -299,21 +220,6 @@ export function ConfiguratorShell({
   const projectTotal = Number(
     (estimate.totalEstimate + installationSubtotal).toFixed(2),
   );
-  const currentTemplate = projectTemplates.find((template) =>
-    matchesTemplate({
-      template,
-      roomWidth,
-      roomLength,
-      garageDoorEnabled,
-      garageDoorWidth,
-      garageDoorOffset,
-      unit,
-      productId: selectedProduct.id,
-      layoutMode,
-      primaryColor,
-      secondaryColor,
-    }),
-  );
   const projectBrief = buildProjectBrief({
     roomWidth,
     roomLength,
@@ -359,42 +265,6 @@ export function ConfiguratorShell({
     link.click();
   }, [selectedProduct.id]);
 
-  const applyProjectTemplate = useCallback((template: ProjectTemplate) => {
-    setUnit(template.unit);
-    setRoomWidth(template.roomWidth);
-    setRoomLength(template.roomLength);
-    setGarageDoorEnabled(template.garageDoorEnabled);
-    setGarageDoorWidth(template.garageDoorWidth);
-    setGarageDoorOffset(template.garageDoorOffset);
-    clearObstacles();
-    clearPaintedTiles();
-    setSelectedProductId(template.productId);
-    setPrimaryColor(template.primaryColor);
-    setSecondaryColor(template.secondaryColor);
-    setActivePaintColor(template.primaryColor);
-    setActivePaintTool("paint");
-    setLayoutMode(template.layoutMode);
-    setInteractionMode("paint");
-    setPaintScope("tile");
-    setActiveToolPanel(null);
-    setCopyState("idle");
-  }, [
-    clearObstacles,
-    clearPaintedTiles,
-    setActivePaintColor,
-    setActivePaintTool,
-    setGarageDoorEnabled,
-    setGarageDoorOffset,
-    setGarageDoorWidth,
-    setLayoutMode,
-    setPrimaryColor,
-    setRoomLength,
-    setRoomWidth,
-    setSecondaryColor,
-    setSelectedProductId,
-    setUnit,
-  ]);
-
   const handleCopyProjectBrief = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(projectBrief);
@@ -406,33 +276,6 @@ export function ConfiguratorShell({
 
   const controlsPanelContent = (
     <div className="section-stack">
-      <section>
-        <div className="workspace-card-head workspace-card-head--tight">
-          <span className="workspace-card-kicker">Depart rapide</span>
-          <strong>Templates compacts</strong>
-        </div>
-        <p className="muted-copy" style={{ margin: "8px 0 0" }}>
-          {currentTemplate
-            ? `${currentTemplate.label} actif. Tu peux repartir d'une base client sans encombrer l'interface.`
-            : "Choisis une base rapide puis ajuste les dimensions et les finitions."}
-        </p>
-        <div className="compact-template-grid">
-          {projectTemplates.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              className={`template-pill${currentTemplate?.id === template.id ? " active" : ""}`}
-              onClick={() => applyProjectTemplate(template)}
-            >
-              <strong>{template.label}</strong>
-              <span>
-                {template.roomWidth} x {template.roomLength} {template.unit}
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-
       <section>
         <h2 className="section-title">Dimensions</h2>
         <div className="field-grid two-up field-grid--dimensions">
@@ -1246,33 +1089,6 @@ function WorkspaceFold(props: WorkspaceFoldProps) {
 
 function getColorHex(color: string): string {
   return paintColorMap[color] ?? "#2f343c";
-}
-
-function matchesTemplate(input: {
-  template: ProjectTemplate;
-  roomWidth: number;
-  roomLength: number;
-  garageDoorEnabled: boolean;
-  garageDoorWidth: number;
-  garageDoorOffset: number;
-  unit: string;
-  productId: string;
-  layoutMode: string;
-  primaryColor: string;
-  secondaryColor: string;
-}): boolean {
-  return (
-    input.roomWidth === input.template.roomWidth &&
-    input.roomLength === input.template.roomLength &&
-    input.garageDoorEnabled === input.template.garageDoorEnabled &&
-    input.garageDoorWidth === input.template.garageDoorWidth &&
-    input.garageDoorOffset === input.template.garageDoorOffset &&
-    input.unit === input.template.unit &&
-    input.productId === input.template.productId &&
-    input.layoutMode === input.template.layoutMode &&
-    input.primaryColor === input.template.primaryColor &&
-    input.secondaryColor === input.template.secondaryColor
-  );
 }
 
 function getLayoutLabel(layoutMode: string): string {
