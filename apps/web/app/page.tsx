@@ -212,7 +212,8 @@ export default function Page() {
                   <h3>{product.name}</h3>
                   <p>{product.seoDescription}</p>
                   <div className="tag-row">
-                    <span className="tag">{formatCurrency(product.pricePerTile)} / tuile</span>
+                    <span className="tag">{formatCurrency(product.pricePerSqFt)} / pi²</span>
+                    <span className="tag">{product.tilesPerBox} tuiles / boite</span>
                     <span className="tag">{product.tileWeightGrams} g</span>
                     <span className="tag">{product.idealFor[0]}</span>
                   </div>

@@ -122,6 +122,7 @@ export function ConfiguratorShell({
   initialProductId,
 }: ConfiguratorShellProps) {
   const effectiveRoomShape = "rectangle" as const;
+  const installationPricePerSqFt = 2;
   const [interactionMode, setInteractionMode] = useState<"paint" | "measure">("paint");
   const [paintScope, setPaintScope] = useState<"tile" | "area">("tile");
   const [activeToolPanel, setActiveToolPanel] = useState<"colors" | null>(null);
@@ -129,6 +130,7 @@ export function ConfiguratorShell({
   const [exportRequestId, setExportRequestId] = useState(0);
   const [clearMeasureRequestId, setClearMeasureRequestId] = useState(0);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [includeInstallation, setIncludeInstallation] = useState(false);
   const roomWidth = useConfiguratorStore((state) => state.roomWidth);
   const roomLength = useConfiguratorStore((state) => state.roomLength);
   const garageDoorEnabled = useConfiguratorStore((state) => state.garageDoorEnabled);
@@ -263,11 +265,19 @@ export function ConfiguratorShell({
 
   const estimate = computeEstimateFromPreview({
     preview,
-    pricePerTile: selectedProduct.pricePerTile,
-    wastePercent: selectedProduct.wastePercent,
+    tileAreaSqFt: selectedProduct.tileAreaSqFt,
+    pricePerSqFt: selectedProduct.pricePerSqFt,
     includePerimeterBorders: layoutMode === "border",
     tilesPerBox: selectedProduct.tilesPerBox,
   });
+  const installationSubtotal = includeInstallation
+    ? Number(
+        (estimate.billableAreaSqFt * installationPricePerSqFt).toFixed(2),
+      )
+    : 0;
+  const projectTotal = Number(
+    (estimate.totalEstimate + installationSubtotal).toFixed(2),
+  );
   const currentTemplate = projectTemplates.find((template) =>
     matchesTemplate({
       template,
@@ -290,7 +300,6 @@ export function ConfiguratorShell({
     garageDoorEnabled,
     layoutMode,
     complexityLabel: estimate.complexityLabel,
-    recommendedWastePercent: estimate.recommendedWastePercent,
   });
   const projectBrief = buildProjectBrief({
     roomWidth,
@@ -302,13 +311,15 @@ export function ConfiguratorShell({
     primaryColor,
     secondaryColor,
     estimateAreaSqFt: estimate.areaSqFt,
+    billableAreaSqFt: estimate.billableAreaSqFt,
     installTiles: estimate.installTiles,
     cutTiles: estimate.cutTiles,
-    wasteReserveTiles: estimate.wasteReserveTiles,
     totalTiles: estimate.totalTiles,
     boxesRequired: estimate.boxesRequired,
-    estimateTotal: estimate.totalEstimate,
-    recommendedWastePercent: estimate.recommendedWastePercent,
+    materialSubtotal: estimate.tileSubtotal,
+    installationIncluded: includeInstallation,
+    installationSubtotal,
+    projectTotal,
     complexityLabel: estimate.complexityLabel,
     garageDoorEnabled,
     garageDoorWidth,
@@ -317,7 +328,7 @@ export function ConfiguratorShell({
   });
   const packageCoverageText =
     estimate.boxesRequired > 0
-      ? `${estimate.boxesRequired} boites couvrent environ ${estimate.orderedBoxCoverageSqFt.toFixed(1)} pi², soit ${estimate.coverageOverageSqFt.toFixed(1)} pi² de marge theorique`
+      ? `${estimate.boxesRequired} boites de ${selectedProduct.tilesPerBox} tuiles couvrent environ ${estimate.orderedBoxCoverageSqFt.toFixed(1)} pi², soit ${estimate.coverageOverageSqFt.toFixed(1)} pi² de marge due au conditionnement`
       : "Aucune boite requise pour le moment";
   const tileFormatLabel = `${selectedProduct.tileWidthIn}" x ${selectedProduct.tileHeightIn}"`;
 
@@ -443,6 +454,7 @@ export function ConfiguratorShell({
               <span className="tag">{selectedProduct.finishLabel}</span>
               <span className="tag">{tileFormatLabel}</span>
               <span className="tag">{selectedProduct.tileWeightGrams} g</span>
+              <span className="tag">{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</span>
             </div>
           </div>
         </article>
@@ -458,24 +470,36 @@ export function ConfiguratorShell({
               <strong>{estimate.areaSqFt.toFixed(1)} pi²</strong>
             </div>
             <div className="workspace-package-metric">
-              <span>Tuiles pose</span>
-              <strong>{estimate.installTiles}</strong>
+              <span>Surface facturable</span>
+              <strong>{estimate.billableAreaSqFt.toFixed(1)} pi²</strong>
             </div>
             <div className="workspace-package-metric">
-              <span>Reserve chantier</span>
-              <strong>{estimate.wasteReserveTiles}</strong>
+              <span>Tuiles facturees</span>
+              <strong>{estimate.totalTiles}</strong>
             </div>
             <div className="workspace-package-metric">
               <span>Boites</span>
               <strong>{estimate.boxesRequired}</strong>
             </div>
             <div className="workspace-package-metric">
-              <span>Budget estime</span>
-              <strong>{formatCurrency(estimate.totalEstimate)}</strong>
+              <span>Materiau</span>
+              <strong>{formatCurrency(estimate.tileSubtotal)}</strong>
+            </div>
+            <div className="workspace-package-metric">
+              <span>Pose</span>
+              <strong>
+                {includeInstallation
+                  ? formatCurrency(installationSubtotal)
+                  : "Option"}
+              </strong>
+            </div>
+            <div className="workspace-package-metric">
+              <span>Total projet</span>
+              <strong>{formatCurrency(projectTotal)}</strong>
             </div>
           </div>
           <p className="muted-copy" style={{ margin: 0 }}>
-            {packageCoverageText}. Commande calculee avec {estimate.recommendedWastePercent.toFixed(1)}% de reserve recommandee.
+            {packageCoverageText}. Les tuiles coupees sont facturees comme des tuiles pleines, sans marge de pertes ajoutee.
           </p>
         </article>
       </section>
@@ -596,6 +620,27 @@ export function ConfiguratorShell({
                   Aucun seuil appliqué au calcul.
                 </p>
               )}
+            </section>
+
+            <section>
+              <h2 className="section-title">Soumission</h2>
+              <div className="field">
+                <label htmlFor="include-installation">Inclure la pose</label>
+                <select
+                  id="include-installation"
+                  value={includeInstallation ? "yes" : "no"}
+                  onChange={(event) =>
+                    setIncludeInstallation(event.target.value === "yes")
+                  }
+                >
+                  <option value="no">Non</option>
+                  <option value="yes">Oui, a 2,00 $ / pi²</option>
+                </select>
+              </div>
+              <p className="muted-copy" style={{ margin: "10px 0 0" }}>
+                La pose est calculee sur la surface facturable, donc a la tuile pleine
+                comme le materiau.
+              </p>
             </section>
 
             <section>
@@ -745,10 +790,11 @@ export function ConfiguratorShell({
             <div className="paint-meta">
               <span className="tag">Gamme: {selectedProduct.name}</span>
               <span className="tag">Surface: {estimate.areaSqFt.toFixed(1)} pi²</span>
+              <span className="tag">Facturable: {estimate.billableAreaSqFt.toFixed(1)} pi²</span>
               <span className="tag">Commande: {estimate.totalTiles} tuiles</span>
-              <span className="tag">Reserve: {estimate.wasteReserveTiles}</span>
               <span className="tag">Plan: {paintedTileCount}</span>
-              <span className="tag">Estimatif: {formatCurrency(estimate.totalEstimate)}</span>
+              <span className="tag">Materiau: {formatCurrency(estimate.tileSubtotal)}</span>
+              <span className="tag">Total: {formatCurrency(projectTotal)}</span>
             </div>
 
           </div>
@@ -985,7 +1031,7 @@ export function ConfiguratorShell({
                 <span className="tag">{selectedProduct.positioningLabel}</span>
                 <span className="tag">{selectedProduct.finishLabel}</span>
                 <span className="tag">{selectedProduct.tilesPerBox} tuiles / boite</span>
-                <span className="tag">{formatCurrency(selectedProduct.pricePerTile)} / tuile</span>
+                <span className="tag">{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</span>
               </div>
             </section>
 
@@ -993,9 +1039,9 @@ export function ConfiguratorShell({
               <h2 className="summary-title">Résumé</h2>
               <div className="summary-grid">
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Pose nette</span>
+                  <span className="summary-metric-label">Tuiles facturees</span>
                   <strong className="summary-metric-value">
-                    {estimate.installTiles} tuiles
+                    {estimate.totalTiles} tuiles
                   </strong>
                 </div>
                 <div className="summary-metric compact">
@@ -1005,9 +1051,9 @@ export function ConfiguratorShell({
                   </strong>
                 </div>
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Reserve chantier</span>
+                  <span className="summary-metric-label">Surface facturable</span>
                   <strong className="summary-metric-value">
-                    {estimate.wasteReserveTiles} tuiles
+                    {estimate.billableAreaSqFt.toFixed(1)} pi²
                   </strong>
                 </div>
                 <div className="summary-metric compact">
@@ -1024,10 +1070,14 @@ export function ConfiguratorShell({
                 </div>
               </div>
               <p className="summary-note">
-                Waste de base :{" "}
-                <strong>{estimate.baseWastePercent.toFixed(1)}%</strong>
-                {" "}| Waste recommande :{" "}
-                <strong>{estimate.recommendedWastePercent.toFixed(1)}%</strong>
+                Materiau :{" "}
+                <strong>{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</strong>
+                {" "}| Pose :{" "}
+                <strong>
+                  {includeInstallation
+                    ? `${formatCurrency(installationPricePerSqFt)} / pi² incluse`
+                    : "non incluse"}
+                </strong>
                 {" "}| Rendement pose :{" "}
                 <strong>{estimate.layoutEfficiencyPercent.toFixed(1)}%</strong>
                 {" "}| Format : <strong>{tileFormatLabel}</strong>
@@ -1133,7 +1183,6 @@ function getProjectStory(input: {
   garageDoorEnabled: boolean;
   layoutMode: string;
   complexityLabel: string;
-  recommendedWastePercent: number;
 }): string {
   const scaleStory =
     input.areaSqFt >= 600
@@ -1144,9 +1193,9 @@ function getProjectStory(input: {
 
   const complexityStory =
     input.complexityLabel === "Tres technique"
-      ? "Le plan demande une vraie lecture chantier, avec reserve et argumentaire bien cadres."
+      ? "Le plan demande une vraie lecture chantier, avec plusieurs coupes et un chiffrage propre."
       : input.complexityLabel === "Complexe"
-        ? "Le projet a assez de coupes pour justifier une commande plus encadree qu'un simple calcul surfacique."
+        ? "Le projet a assez de coupes pour justifier un chiffrage a la tuile pleine plutot qu'un simple calcul surfacique."
         : input.obstaclesCount > 0
           ? `Il y a ${input.obstaclesCount} zone${input.obstaclesCount > 1 ? "s" : ""} a contourner, donc il faut privilegier une lecture nette et un plan qui reste facile a expliquer.`
           : input.garageDoorEnabled
@@ -1162,7 +1211,7 @@ function getProjectStory(input: {
           ? "Le mode libre te permet deja de vendre une personnalisation plus exclusive."
           : "Le mode uni met davantage l'accent sur la matiere et la gamme que sur le motif.";
 
-  return `${input.product.positioningLabel}. ${scaleStory} ${complexityStory} ${patternStory} Reserve recommandee: ${input.recommendedWastePercent.toFixed(1)}%.`;
+  return `${input.product.positioningLabel}. ${scaleStory} ${complexityStory} ${patternStory} Les tuiles coupees sont comptees pleines au chiffrage.`;
 }
 
 function getLayoutLabel(layoutMode: string): string {
@@ -1190,13 +1239,15 @@ function buildProjectBrief(input: {
   primaryColor: string;
   secondaryColor: string;
   estimateAreaSqFt: number;
+  billableAreaSqFt: number;
   installTiles: number;
   cutTiles: number;
-  wasteReserveTiles: number;
   totalTiles: number;
   boxesRequired: number;
-  estimateTotal: number;
-  recommendedWastePercent: number;
+  materialSubtotal: number;
+  installationIncluded: boolean;
+  installationSubtotal: number;
+  projectTotal: number;
   complexityLabel: string;
   garageDoorEnabled: boolean;
   garageDoorWidth: number;
@@ -1209,14 +1260,17 @@ function buildProjectBrief(input: {
     `Motif: ${getLayoutLabel(input.layoutMode)}`,
     `Palette: ${input.primaryColor}${input.secondaryColor ? ` / ${input.secondaryColor}` : ""}`,
     `Surface utile: ${input.estimateAreaSqFt.toFixed(1)} pi²`,
+    `Surface facturable: ${input.billableAreaSqFt.toFixed(1)} pi²`,
     `Pose nette: ${input.installTiles}`,
     `Coupes plan: ${input.cutTiles}`,
-    `Reserve chantier: ${input.wasteReserveTiles}`,
     `Commande totale: ${input.totalTiles}`,
     `Boites estimees: ${input.boxesRequired}`,
-    `Waste recommande: ${input.recommendedWastePercent.toFixed(1)}%`,
+    `Materiau: ${formatCurrency(input.materialSubtotal)}`,
+    input.installationIncluded
+      ? `Pose: ${formatCurrency(input.installationSubtotal)}`
+      : "Pose: non incluse",
     `Complexite: ${input.complexityLabel}`,
-    `Budget estime: ${formatCurrency(input.estimateTotal)}`,
+    `Total projet: ${formatCurrency(input.projectTotal)}`,
     input.garageDoorEnabled
       ? `Porte de garage: oui (${input.garageDoorWidth} ${input.unit}, offset ${input.garageDoorOffset} ${input.unit})`
       : "Porte de garage: non",

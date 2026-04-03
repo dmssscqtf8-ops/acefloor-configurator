@@ -12,10 +12,10 @@ export type CatalogProduct = {
   tileWidthIn: number;
   tileHeightIn: number;
   tileThicknessIn: number;
+  tileAreaSqFt: number;
   tileWeightGrams: number;
   tilesPerBox: number;
-  pricePerTile: number;
-  wastePercent: number;
+  pricePerSqFt: number;
   availableColors: string[];
   mediaType?: "image" | "video";
   mediaSrc?: string;
@@ -50,6 +50,9 @@ export const catalogColorHexMap: Record<string, string> = {
 
 const tileSizeIn = 15.75;
 const tileThicknessIn = 0.75;
+const tileAreaSqFt = 1.7226;
+const crownPricePerSqFt = 4.9;
+const acetraxPricePerSqFt = 4.3;
 
 const crownPalette = [
   "Noir",
@@ -168,10 +171,10 @@ export const catalogProducts: CatalogProduct[] = [
     tileWidthIn: tileSizeIn,
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
+    tileAreaSqFt,
     tileWeightGrams: 600,
-    tilesPerBox: 12,
-    pricePerTile: 8.9,
-    wastePercent: 9,
+    tilesPerBox: 40,
+    pricePerSqFt: crownPricePerSqFt,
     availableColors: crownPalette,
     mediaType: "image",
     mediaByColor: crownSeriesTopMedia,
@@ -202,10 +205,10 @@ export const catalogProducts: CatalogProduct[] = [
     tileWidthIn: tileSizeIn,
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
+    tileAreaSqFt,
     tileWeightGrams: 600,
-    tilesPerBox: 12,
-    pricePerTile: 9.25,
-    wastePercent: 9,
+    tilesPerBox: 30,
+    pricePerSqFt: crownPricePerSqFt,
     availableColors: crownPalette,
     mediaType: "image",
     mediaSrc: "/media/crown-grip/source/grip-3.png",
@@ -239,10 +242,10 @@ export const catalogProducts: CatalogProduct[] = [
     tileWidthIn: tileSizeIn,
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
+    tileAreaSqFt,
     tileWeightGrams: 600,
-    tilesPerBox: 12,
-    pricePerTile: 9.5,
-    wastePercent: 9,
+    tilesPerBox: 30,
+    pricePerSqFt: crownPricePerSqFt,
     availableColors: crownPalette,
     mediaType: "image",
     mediaSrc: "/media/crown-cubic/black.png",
@@ -276,10 +279,10 @@ export const catalogProducts: CatalogProduct[] = [
     tileWidthIn: tileSizeIn,
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
+    tileAreaSqFt,
     tileWeightGrams: 500,
-    tilesPerBox: 12,
-    pricePerTile: 7.95,
-    wastePercent: 9,
+    tilesPerBox: 40,
+    pricePerSqFt: acetraxPricePerSqFt,
     availableColors: acetraxPalette,
     mediaType: "image",
     mediaByColor: acetraxMedia,
@@ -307,4 +310,14 @@ export function getCatalogProductHeroImage(product: CatalogProduct): string {
 
 export function getCatalogColorHex(color: string): string {
   return catalogColorHexMap[color] ?? "#2f343c";
+}
+
+export function getCatalogProductBoxCoverageSqFt(
+  product: Pick<CatalogProduct, "tileAreaSqFt" | "tilesPerBox">,
+): number {
+  return roundToOneDecimal(product.tileAreaSqFt * product.tilesPerBox);
+}
+
+function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10;
 }

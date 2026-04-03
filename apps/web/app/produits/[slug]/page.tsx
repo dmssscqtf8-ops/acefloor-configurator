@@ -126,9 +126,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                   {formatDimension(product.tileThicknessIn)} ep.
                 </span>
                 <span className="tag">{product.tileWeightGrams} g</span>
-                <span className="tag">
-                  {formatCurrency(product.pricePerTile)} / tuile
-                </span>
+                <span className="tag">{product.tilesPerBox} tuiles / boite</span>
+                <span className="tag">{formatCurrency(product.pricePerSqFt)} / pi²</span>
                 <span className="tag">{product.availableColors.length} couleurs</span>
               </div>
 
@@ -213,8 +212,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                 <span className="seo-card-kicker">Installation</span>
                 <h3>Projection et estimatif</h3>
                 <p>
-                  Le configurateur calcule la surface utile, les edges, les pertes et
-                  un estimatif rapide avec une marge de pertes de {product.wastePercent}%.
+                  Le configurateur facture a la tuile pleine: les tuiles coupees sont
+                  comptees pleines, sans marge de pertes ajoutee artificiellement.
                 </p>
               </article>
             </div>
@@ -287,8 +286,9 @@ export default function ProductPage({ params }: ProductPageProps) {
                   <h3>{catalogProduct.name}</h3>
                   <p>{catalogProduct.seoDescription}</p>
                   <div className="tag-row">
+                    <span className="tag">{catalogProduct.tilesPerBox} tuiles / boite</span>
                     <span className="tag">
-                      {formatCurrency(catalogProduct.pricePerTile)} / tuile
+                      {formatCurrency(catalogProduct.pricePerSqFt)} / pi²
                     </span>
                     <span className="tag">{catalogProduct.tileWeightGrams} g</span>
                   </div>
@@ -367,7 +367,7 @@ function buildProductStructuredData(
       material: "Polypropylene",
       offers: {
         "@type": "Offer",
-        price: product.pricePerTile.toFixed(2),
+        price: product.pricePerSqFt.toFixed(2),
         priceCurrency: "CAD",
         availability: "https://schema.org/InStock",
         url: canonicalUrl ?? undefined,

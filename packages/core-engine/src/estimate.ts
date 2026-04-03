@@ -7,8 +7,8 @@ export type RectangleEstimateInput = {
   unit: Unit;
   tileWidthIn: number;
   tileHeightIn: number;
-  wastePercent: number;
-  pricePerTile: number;
+  tileAreaSqFt?: number;
+  pricePerSqFt: number;
   includePerimeterBorders?: boolean;
   tilesPerBox?: number;
 };
@@ -22,8 +22,8 @@ export type RectangleEstimate = {
   fullTiles: number;
   cutTiles: number;
   installTiles: number;
-  baseWastePercent: number;
-  recommendedWastePercent: number;
+  billableAreaSqFt: number;
+  materialPricePerSqFt: number;
   wasteTiles: number;
   wasteReserveTiles: number;
   totalTiles: number;
@@ -77,15 +77,15 @@ export function computeRectangleEstimate(
     cutTiles,
     tileWidthIn: input.tileWidthIn,
     tileHeightIn: input.tileHeightIn,
-    wastePercent: input.wastePercent,
+    tileAreaSqFt: input.tileAreaSqFt,
     tilesPerBox: input.tilesPerBox,
     obstacleCount: 0,
     garageDoorEnabled: false,
   });
-  const tileSubtotal = commercialMetrics.totalTiles * input.pricePerTile;
-  const borderEstimate = input.includePerimeterBorders
-    ? borderLinearFeet * 4.5
-    : 0;
+  const tileSubtotal = roundCurrency(
+    commercialMetrics.billableAreaSqFt * input.pricePerSqFt,
+  );
+  const borderEstimate = 0;
   const totalEstimate = tileSubtotal + borderEstimate;
 
   return {
@@ -97,10 +97,10 @@ export function computeRectangleEstimate(
     fullTiles,
     cutTiles,
     installTiles,
-    baseWastePercent: commercialMetrics.baseWastePercent,
-    recommendedWastePercent: commercialMetrics.recommendedWastePercent,
-    wasteTiles: commercialMetrics.wasteReserveTiles,
-    wasteReserveTiles: commercialMetrics.wasteReserveTiles,
+    billableAreaSqFt: commercialMetrics.billableAreaSqFt,
+    materialPricePerSqFt: input.pricePerSqFt,
+    wasteTiles: 0,
+    wasteReserveTiles: 0,
     totalTiles: commercialMetrics.totalTiles,
     tilesPerBox: commercialMetrics.tilesPerBox,
     boxesRequired: commercialMetrics.boxesRequired,
@@ -140,8 +140,8 @@ export function formatCurrency(value: number): string {
 
 export function computeEstimateFromPreview(input: {
   preview: RoomPreview;
-  wastePercent: number;
-  pricePerTile: number;
+  tileAreaSqFt?: number;
+  pricePerSqFt: number;
   includePerimeterBorders?: boolean;
   tilesPerBox?: number;
 }): RectangleEstimate {
@@ -158,15 +158,15 @@ export function computeEstimateFromPreview(input: {
     cutTiles,
     tileWidthIn: input.preview.tileWidthIn,
     tileHeightIn: input.preview.tileHeightIn,
-    wastePercent: input.wastePercent,
+    tileAreaSqFt: input.tileAreaSqFt,
     tilesPerBox: input.tilesPerBox,
     obstacleCount: input.preview.obstacles.length,
     garageDoorEnabled: input.preview.garageDoor.enabled,
   });
-  const tileSubtotal = commercialMetrics.totalTiles * input.pricePerTile;
-  const borderEstimate = input.includePerimeterBorders
-    ? borderLinearFeet * 4.5
-    : 0;
+  const tileSubtotal = roundCurrency(
+    commercialMetrics.billableAreaSqFt * input.pricePerSqFt,
+  );
+  const borderEstimate = 0;
   const totalEstimate = tileSubtotal + borderEstimate;
 
   return {
@@ -178,10 +178,10 @@ export function computeEstimateFromPreview(input: {
     fullTiles,
     cutTiles,
     installTiles,
-    baseWastePercent: commercialMetrics.baseWastePercent,
-    recommendedWastePercent: commercialMetrics.recommendedWastePercent,
-    wasteTiles: commercialMetrics.wasteReserveTiles,
-    wasteReserveTiles: commercialMetrics.wasteReserveTiles,
+    billableAreaSqFt: commercialMetrics.billableAreaSqFt,
+    materialPricePerSqFt: input.pricePerSqFt,
+    wasteTiles: 0,
+    wasteReserveTiles: 0,
     totalTiles: commercialMetrics.totalTiles,
     tilesPerBox: commercialMetrics.tilesPerBox,
     boxesRequired: commercialMetrics.boxesRequired,
@@ -217,13 +217,14 @@ function buildCommercialMetrics(input: {
   cutTiles: number;
   tileWidthIn: number;
   tileHeightIn: number;
-  wastePercent: number;
+  tileAreaSqFt?: number;
   tilesPerBox?: number;
   obstacleCount: number;
   garageDoorEnabled: boolean;
 }) {
   const installTiles = Math.max(input.fullTiles + input.cutTiles, 0);
-  const tileAreaSqFt = (input.tileWidthIn * input.tileHeightIn) / 144;
+  const tileAreaSqFt =
+    input.tileAreaSqFt ?? (input.tileWidthIn * input.tileHeightIn) / 144;
   const layoutEfficiencyPercent =
     installTiles > 0 && tileAreaSqFt > 0
       ? roundToOneDecimal(
@@ -236,23 +237,8 @@ function buildCommercialMetrics(input: {
       Math.min(input.obstacleCount * 1, 4) +
       (input.garageDoorEnabled ? 1.5 : 0),
   );
-  const recommendedWastePercent =
-    installTiles > 0
-      ? roundToOneDecimal(
-          Math.min(
-            input.wastePercent + 7,
-            input.wastePercent +
-              Math.min(cutRatio * 9, 3.5) +
-              Math.min(input.obstacleCount * 1, 4) +
-              (input.garageDoorEnabled ? 1.25 : 0),
-          ),
-        )
-      : 0;
-  const wasteReserveTiles =
-    installTiles > 0
-      ? Math.max(2, Math.ceil(installTiles * (recommendedWastePercent / 100)))
-      : 0;
-  const totalTiles = installTiles + wasteReserveTiles;
+  const billableAreaSqFt = installTiles * tileAreaSqFt;
+  const totalTiles = installTiles;
   const tilesPerBox = Math.max(1, Math.floor(input.tilesPerBox ?? 1));
   const boxesRequired =
     totalTiles > 0 ? Math.max(1, Math.ceil(totalTiles / tilesPerBox)) : 0;
@@ -267,9 +253,7 @@ function buildCommercialMetrics(input: {
     boxesRequired > 0 ? boxesRequired * tilesPerBox - totalTiles : 0;
 
   return {
-    baseWastePercent: input.wastePercent,
-    recommendedWastePercent,
-    wasteReserveTiles,
+    billableAreaSqFt: roundToOneDecimal(billableAreaSqFt),
     totalTiles,
     tilesPerBox,
     boxesRequired,
@@ -307,4 +291,8 @@ function roundToOneDecimal(value: number): number {
 
 function roundToThreeDecimals(value: number): number {
   return Math.round(value * 1000) / 1000;
+}
+
+function roundCurrency(value: number): number {
+  return Math.round(value * 100) / 100;
 }

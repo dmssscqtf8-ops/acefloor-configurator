@@ -123,8 +123,9 @@ export default function ProductsPage() {
                         {formatDimension(product.tileHeightIn)}
                       </span>
                       <span className="tag">{product.tileWeightGrams} g</span>
+                      <span className="tag">{product.tilesPerBox} tuiles / boite</span>
                       <span className="tag">
-                        {formatCurrency(product.pricePerTile)} / tuile
+                        {formatCurrency(product.pricePerSqFt)} / pi²
                       </span>
                     </div>
 
