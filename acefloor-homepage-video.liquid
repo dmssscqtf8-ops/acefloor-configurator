@@ -1,0 +1,1373 @@
+{% assign hero_image = section.settings.hero_image %}
+{% assign hero_video = section.settings.hero_video %}
+
+<section class="acefloor-homepage-section" id="acefloor-homepage-{{ section.id }}">
+  <div class="acefloor-hero">
+    <div class="acefloor-hero__media">
+      {% if hero_video != blank %}
+        <video
+          class="acefloor-hero__video"
+          autoplay
+          loop
+          muted
+          playsinline
+          preload="metadata"
+          aria-hidden="true"
+          {% if hero_image != blank %}poster="{{ hero_image | image_url: width: 2400 }}"{% endif %}
+        >
+          {% for source in hero_video.sources %}
+            <source src="{{ source.url }}" type="{{ source.mime_type }}">
+          {% endfor %}
+        </video>
+      {% elsif hero_image != blank %}
+        <img
+          src="{{ hero_image | image_url: width: 2400 }}"
+          alt="{{ section.settings.hero_title | escape }}"
+          loading="eager"
+          width="{{ hero_image.width }}"
+          height="{{ hero_image.height }}"
+        >
+      {% endif %}
+      <div class="acefloor-hero__overlay"></div>
+    </div>
+
+    <div class="page-width acefloor-hero__content">
+      <div class="acefloor-hero__left">
+        {% if section.settings.hero_small_text != blank %}
+          <div class="acefloor-pill">{{ section.settings.hero_small_text }}</div>
+        {% endif %}
+
+        {% if section.settings.hero_title != blank %}
+          <h1 class="acefloor-hero__title">{{ section.settings.hero_title }}</h1>
+        {% endif %}
+
+        {% if section.settings.hero_text != blank %}
+          <div class="acefloor-hero__text rte">{{ section.settings.hero_text }}</div>
+        {% endif %}
+
+        <div class="acefloor-hero__buttons">
+          {% if section.settings.primary_button_label != blank %}
+            <a href="{{ section.settings.primary_button_link | default: '#' }}" class="acefloor-btn acefloor-btn--gold">
+              {{ section.settings.primary_button_label }}
+            </a>
+          {% endif %}
+
+          {% if section.settings.secondary_button_label != blank %}
+            <a href="{{ section.settings.secondary_button_link | default: '#' }}" class="acefloor-btn acefloor-btn--ghost">
+              {{ section.settings.secondary_button_label }}
+            </a>
+          {% endif %}
+        </div>
+
+        <div class="acefloor-badges">
+          {% if section.settings.badge_1 != blank %}
+            <span class="acefloor-badge">{{ section.settings.badge_1 }}</span>
+          {% endif %}
+          {% if section.settings.badge_2 != blank %}
+            <span class="acefloor-badge">{{ section.settings.badge_2 }}</span>
+          {% endif %}
+          {% if section.settings.badge_3 != blank %}
+            <span class="acefloor-badge">{{ section.settings.badge_3 }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="acefloor-hero__right">
+        <div class="acefloor-signature-card">
+          {% if section.settings.signature_label != blank %}
+            <div class="acefloor-card-label">{{ section.settings.signature_label }}</div>
+          {% endif %}
+          {% if section.settings.signature_title != blank %}
+            <h3>{{ section.settings.signature_title }}</h3>
+          {% endif %}
+          {% if section.settings.signature_text != blank %}
+            <p>{{ section.settings.signature_text }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section acefloor-section--intro">
+    {% if section.settings.why_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.why_title }}</h2>
+    {% endif %}
+    {% if section.settings.why_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.why_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-grid acefloor-grid--3">
+      {% for block in section.blocks %}
+        {% if block.type == 'feature' %}
+          <div class="acefloor-card acefloor-card--dark{% if block.settings.image != blank %} acefloor-card--has-media{% endif %}" {{ block.shopify_attributes }}>
+            {% if block.settings.image != blank %}
+              <div class="acefloor-card__media">
+                <img
+                  src="{{ block.settings.image | image_url: width: 1200 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 360 }} 360w,
+                    {{ block.settings.image | image_url: width: 540 }} 540w,
+                    {{ block.settings.image | image_url: width: 720 }} 720w,
+                    {{ block.settings.image | image_url: width: 960 }} 960w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w
+                  "
+                  sizes="(min-width: 1400px) 420px, (min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.title | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="acefloor-card__body">
+              <h3>{{ block.settings.title }}</h3>
+              <p>{{ block.settings.text }}</p>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section">
+    {% if section.settings.credibility_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.credibility_title }}</h2>
+    {% endif %}
+    {% if section.settings.credibility_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.credibility_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-grid acefloor-grid--4">
+      {% for block in section.blocks %}
+        {% if block.type == 'credibility' %}
+          <div class="acefloor-card acefloor-card--light{% if block.settings.image != blank %} acefloor-card--has-media{% endif %}" {{ block.shopify_attributes }}>
+            {% if block.settings.image != blank %}
+              <div class="acefloor-card__media">
+                <img
+                  src="{{ block.settings.image | image_url: width: 1200 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 360 }} 360w,
+                    {{ block.settings.image | image_url: width: 540 }} 540w,
+                    {{ block.settings.image | image_url: width: 720 }} 720w,
+                    {{ block.settings.image | image_url: width: 960 }} 960w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w
+                  "
+                  sizes="(min-width: 1400px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 50vw, 100vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.title | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="acefloor-card__body">
+              <h3>{{ block.settings.title }}</h3>
+              <p>{{ block.settings.text }}</p>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section">
+    {% if section.settings.comparison_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.comparison_title }}</h2>
+    {% endif %}
+    {% if section.settings.comparison_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.comparison_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-grid acefloor-grid--4">
+      {% for block in section.blocks %}
+        {% if block.type == 'comparison' %}
+          <div class="acefloor-card acefloor-card--light{% if block.settings.image != blank %} acefloor-card--has-media{% endif %}" {{ block.shopify_attributes }}>
+            {% if block.settings.image != blank %}
+              <div class="acefloor-card__media">
+                <img
+                  src="{{ block.settings.image | image_url: width: 1200 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 360 }} 360w,
+                    {{ block.settings.image | image_url: width: 540 }} 540w,
+                    {{ block.settings.image | image_url: width: 720 }} 720w,
+                    {{ block.settings.image | image_url: width: 960 }} 960w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w
+                  "
+                  sizes="(min-width: 1400px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 50vw, 100vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.title | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="acefloor-card__body">
+              <h3>{{ block.settings.title }}</h3>
+              <p>{{ block.settings.text }}</p>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section">
+    {% if section.settings.markets_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.markets_title }}</h2>
+    {% endif %}
+    {% if section.settings.markets_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.markets_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-grid acefloor-grid--3">
+      {% for block in section.blocks %}
+        {% if block.type == 'market' %}
+          <div class="acefloor-card acefloor-card--light{% if block.settings.image != blank %} acefloor-card--has-media{% endif %}" {{ block.shopify_attributes }}>
+            {% if block.settings.image != blank %}
+              <div class="acefloor-card__media">
+                <img
+                  src="{{ block.settings.image | image_url: width: 1200 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 360 }} 360w,
+                    {{ block.settings.image | image_url: width: 540 }} 540w,
+                    {{ block.settings.image | image_url: width: 720 }} 720w,
+                    {{ block.settings.image | image_url: width: 960 }} 960w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w
+                  "
+                  sizes="(min-width: 1400px) 420px, (min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.title | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="acefloor-card__body">
+              <h3>{{ block.settings.title }}</h3>
+              <p>{{ block.settings.text }}</p>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section">
+    {% if section.settings.categories_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.categories_title }}</h2>
+    {% endif %}
+    {% if section.settings.categories_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.categories_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-grid acefloor-grid--4">
+      {% for block in section.blocks %}
+        {% if block.type == 'category' %}
+          <a href="{{ block.settings.link | default: '#' }}" class="acefloor-card acefloor-card--category{% if block.settings.image != blank %} acefloor-card--has-media{% endif %}" {{ block.shopify_attributes }}>
+            {% if block.settings.image != blank %}
+              <div class="acefloor-card__media">
+                <img
+                  src="{{ block.settings.image | image_url: width: 1400 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 480 }} 480w,
+                    {{ block.settings.image | image_url: width: 720 }} 720w,
+                    {{ block.settings.image | image_url: width: 960 }} 960w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w,
+                    {{ block.settings.image | image_url: width: 1400 }} 1400w
+                  "
+                  sizes="(min-width: 1400px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 50vw, 100vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.title | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="acefloor-card__body">
+              <h3>{{ block.settings.title }}</h3>
+              <p>{{ block.settings.text }}</p>
+              <span class="acefloor-link">Explorer</span>
+            </div>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section">
+    {% if section.settings.gallery_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.gallery_title }}</h2>
+    {% endif %}
+    {% if section.settings.gallery_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.gallery_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-grid acefloor-grid--2">
+      {% for block in section.blocks %}
+        {% if block.type == 'gallery' %}
+          <a href="{{ block.settings.link | default: '#' }}" class="acefloor-card acefloor-card--gallery{% if block.settings.image != blank %} acefloor-card--has-media{% endif %}" {{ block.shopify_attributes }}>
+            {% if block.settings.image != blank %}
+              <div class="acefloor-card__media">
+                <img
+                  src="{{ block.settings.image | image_url: width: 1600 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 480 }} 480w,
+                    {{ block.settings.image | image_url: width: 720 }} 720w,
+                    {{ block.settings.image | image_url: width: 960 }} 960w,
+                    {{ block.settings.image | image_url: width: 1280 }} 1280w,
+                    {{ block.settings.image | image_url: width: 1600 }} 1600w
+                  "
+                  sizes="(min-width: 1400px) 640px, (min-width: 990px) 50vw, 100vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.title | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="acefloor-card__body">
+              <h3>{{ block.settings.title }}</h3>
+              <p>{{ block.settings.text }}</p>
+              <span class="acefloor-link">Voir plus</span>
+            </div>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section">
+    {% if section.settings.turnkey_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.turnkey_title }}</h2>
+    {% endif %}
+    {% if section.settings.turnkey_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.turnkey_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-grid acefloor-grid--4">
+      {% for block in section.blocks %}
+        {% if block.type == 'turnkey' %}
+          <div class="acefloor-card acefloor-card--light{% if block.settings.image != blank %} acefloor-card--has-media{% endif %}" {{ block.shopify_attributes }}>
+            {% if block.settings.image != blank %}
+              <div class="acefloor-card__media">
+                <img
+                  src="{{ block.settings.image | image_url: width: 1200 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 360 }} 360w,
+                    {{ block.settings.image | image_url: width: 540 }} 540w,
+                    {{ block.settings.image | image_url: width: 720 }} 720w,
+                    {{ block.settings.image | image_url: width: 960 }} 960w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w
+                  "
+                  sizes="(min-width: 1400px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 50vw, 100vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.title | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="acefloor-card__body">
+              <h3>{{ block.settings.title }}</h3>
+              <p>{{ block.settings.text }}</p>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="page-width acefloor-section acefloor-section--final">
+    {% if section.settings.final_title != blank %}
+      <h2 class="acefloor-section-title">{{ section.settings.final_title }}</h2>
+    {% endif %}
+    {% if section.settings.final_text != blank %}
+      <div class="acefloor-section-text rte">{{ section.settings.final_text }}</div>
+    {% endif %}
+
+    <div class="acefloor-hero__buttons acefloor-hero__buttons--center">
+      {% if section.settings.final_primary_button_label != blank %}
+        <a href="{{ section.settings.final_primary_button_link | default: '#' }}" class="acefloor-btn acefloor-btn--gold">
+          {{ section.settings.final_primary_button_label }}
+        </a>
+      {% endif %}
+
+      {% if section.settings.final_secondary_button_label != blank %}
+        <a href="{{ section.settings.final_secondary_button_link | default: '#' }}" class="acefloor-btn acefloor-btn--ghost-dark">
+          {{ section.settings.final_secondary_button_label }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<style>
+  #acefloor-homepage-{{ section.id }} {
+    background: #050505;
+    color: #f5f5f5;
+  }
+
+  #acefloor-homepage-{{ section.id }} .page-width {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero {
+    position: relative;
+    min-height: clamp(540px, 66vh, 760px);
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    background: #050505;
+    isolation: isolate;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero::before {
+    content: "";
+    position: absolute;
+    right: -8%;
+    bottom: -22%;
+    width: min(44vw, 680px);
+    height: min(44vw, 680px);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(214, 169, 64, 0.2) 0%, rgba(214, 169, 64, 0) 68%);
+    filter: blur(18px);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero::after {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 30px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__media img,
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    transform: scale(1.01);
+    filter: brightness(0.76);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__media img {
+    filter: saturate(0.88) contrast(1.04) brightness(0.72);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__media video,
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__video {
+    filter: saturate(0.95) contrast(1.08) brightness(0.8);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      radial-gradient(circle at 78% 18%, rgba(214, 169, 64, 0.1) 0%, rgba(214, 169, 64, 0) 32%),
+      linear-gradient(90deg, rgba(3, 4, 8, 0.92) 0%, rgba(3, 4, 8, 0.78) 34%, rgba(3, 4, 8, 0.48) 58%, rgba(3, 4, 8, 0.84) 100%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.12) 36%, rgba(0, 0, 0, 0.72) 100%);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.78fr);
+    gap: 56px;
+    align-items: end;
+    padding-top: 84px;
+    padding-bottom: 64px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__left {
+    max-width: 700px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(214, 169, 64, 0.34);
+    color: #eed28a;
+    background: linear-gradient(180deg, rgba(214, 169, 64, 0.14) 0%, rgba(214, 169, 64, 0.05) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 26px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__title {
+    margin: 0 0 20px;
+    font-size: clamp(48px, 6.2vw, 96px);
+    line-height: 0.94;
+    letter-spacing: -0.045em;
+    color: #ffffff;
+    max-width: 9.5ch;
+    text-wrap: balance;
+    text-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__text {
+    max-width: 620px;
+    font-size: 18px;
+    line-height: 1.78;
+    color: rgba(255, 255, 255, 0.78);
+    margin-bottom: 32px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__buttons--center {
+    justify-content: center;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 58px;
+    padding: 15px 28px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.01em;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-btn--gold {
+    background: linear-gradient(135deg, #f6d67d 0%, #d1a133 48%, #b9851f 100%);
+    color: #101010;
+    border: 1px solid rgba(255, 233, 181, 0.48);
+    box-shadow: 0 16px 36px rgba(169, 120, 18, 0.22), inset 0 1px 0 rgba(255, 248, 223, 0.5);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-btn--gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 44px rgba(169, 120, 18, 0.28), inset 0 1px 0 rgba(255, 248, 223, 0.52);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-btn--ghost {
+    background: rgba(10, 12, 18, 0.34);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-btn--ghost-dark {
+    background: rgba(255, 255, 255, 0.02);
+    color: #f5f5f5;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-btn--ghost:hover,
+  #acefloor-homepage-{{ section.id }} .acefloor-btn--ghost-dark:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.26);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 34px rgba(0, 0, 0, 0.22);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 11px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    backdrop-filter: blur(8px);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-hero__right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-signature-card {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 450px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%),
+      linear-gradient(180deg, rgba(7, 10, 16, 0.86) 0%, rgba(4, 6, 10, 0.92) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 30px;
+    padding: 34px;
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(18px);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-signature-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 240, 204, 0.7) 50%, rgba(255, 255, 255, 0) 100%);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card-label {
+    color: #efd391;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-signature-card h3 {
+    margin: 0 0 14px;
+    font-size: clamp(34px, 3.2vw, 44px);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    color: #fff;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-signature-card p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, 0.74);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-section {
+    padding-top: 88px;
+    padding-bottom: 10px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-section--intro {
+    padding-top: 82px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-section--final {
+    padding-bottom: 96px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-section-title {
+    margin: 0 0 16px;
+    font-size: clamp(34px, 4vw, 58px);
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    color: #fff;
+    max-width: 14ch;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-section-text {
+    max-width: 900px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 18px;
+    line-height: 1.75;
+    margin-bottom: 34px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-grid {
+    display: grid;
+    gap: 20px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 24px;
+    padding: 26px;
+    text-decoration: none;
+    isolation: isolate;
+    transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card:hover {
+    transform: translateY(-4px);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card--has-media {
+    padding: 0;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card__media {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: #0a0c10;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card--category .acefloor-card__media,
+  #acefloor-homepage-{{ section.id }} .acefloor-card--gallery .acefloor-card__media {
+    aspect-ratio: 4 / 3;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card__media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.10) 42%, rgba(0, 0, 0, 0.28) 100%),
+      linear-gradient(90deg, rgba(214, 169, 64, 0.06) 0%, rgba(214, 169, 64, 0) 38%);
+    pointer-events: none;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    transform: scale(1.02);
+    transition: transform 0.7s cubic-bezier(0.19, 1, 0.22, 1), filter 0.35s ease;
+    filter: saturate(0.94) contrast(1.03) brightness(0.96);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card:hover .acefloor-card__media img {
+    transform: scale(1.06);
+    filter: saturate(1) contrast(1.06) brightness(1);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card__body {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card--has-media .acefloor-card__body {
+    padding: 24px 24px 26px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card h3 {
+    margin: 0 0 12px;
+    font-size: 26px;
+    line-height: 1.1;
+    color: #fff;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.80);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card--dark {
+    background: linear-gradient(180deg, rgba(20, 22, 26, 0.90) 0%, rgba(10, 11, 14, 0.95) 100%);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card--light {
+    background: linear-gradient(180deg, rgba(17, 19, 24, 0.82) 0%, rgba(8, 10, 14, 0.88) 100%);
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card--category,
+  #acefloor-homepage-{{ section.id }} .acefloor-card--gallery {
+    background: linear-gradient(180deg, rgba(12, 14, 18, 0.90) 0%, rgba(8, 9, 12, 0.98) 100%);
+    min-height: 220px;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-link {
+    margin-top: auto;
+    padding-top: 20px;
+    color: #d6a940;
+    font-weight: 700;
+    font-size: 14px;
+    transition: transform 0.25s ease, color 0.25s ease;
+  }
+
+  #acefloor-homepage-{{ section.id }} .acefloor-card:hover .acefloor-link {
+    transform: translateX(4px);
+    color: #f1c75b;
+  }
+
+  @media screen and (max-width: 1199px) {
+    #acefloor-homepage-{{ section.id }} .acefloor-grid--4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media screen and (max-width: 989px) {
+    #acefloor-homepage-{{ section.id }} .acefloor-hero::after {
+      inset: 14px;
+      border-radius: 24px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__content {
+      grid-template-columns: 1fr;
+      align-items: end;
+      gap: 28px;
+      padding-top: 68px;
+      padding-bottom: 44px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__left {
+      max-width: 100%;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__title {
+      max-width: 10.5ch;
+      font-size: clamp(40px, 9vw, 68px);
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__text {
+      font-size: 16px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__right {
+      justify-content: flex-start;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-signature-card {
+      max-width: 100%;
+      padding: 28px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-grid--3,
+    #acefloor-homepage-{{ section.id }} .acefloor-grid--2,
+    #acefloor-homepage-{{ section.id }} .acefloor-grid--4 {
+      grid-template-columns: 1fr;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-section {
+      padding-top: 64px;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    #acefloor-homepage-{{ section.id }} .page-width {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero {
+      min-height: 500px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero::after {
+      inset: 12px;
+      border-radius: 22px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__title {
+      font-size: 42px;
+      line-height: 0.98;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__text {
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-hero__buttons {
+      gap: 12px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-btn {
+      width: 100%;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-section-title {
+      font-size: 34px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-card {
+      padding: 22px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-card__media,
+    #acefloor-homepage-{{ section.id }} .acefloor-card--category .acefloor-card__media,
+    #acefloor-homepage-{{ section.id }} .acefloor-card--gallery .acefloor-card__media {
+      aspect-ratio: 4 / 3;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-card--has-media .acefloor-card__body {
+      padding: 20px 20px 22px;
+    }
+
+    #acefloor-homepage-{{ section.id }} .acefloor-signature-card h3 {
+      font-size: 28px;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "AceFloor Homepage",
+  "settings": [
+    {
+      "type": "text",
+      "id": "hero_small_text",
+      "label": "Hero - petit texte",
+      "default": "Crown Series exclusive à AceFloor"
+    },
+    {
+      "type": "text",
+      "id": "hero_title",
+      "label": "Hero - titre",
+      "default": "La référence haut de gamme en tuiles modulaires au Québec."
+    },
+    {
+      "type": "richtext",
+      "id": "hero_text",
+      "label": "Hero - texte",
+      "default": "<p>Transformez garages, showrooms, ateliers et espaces commerciaux avec une finition premium, une résistance extrême et un impact visuel immédiat.</p>"
+    },
+    {
+      "type": "image_picker",
+      "id": "hero_image",
+      "label": "Hero - image"
+    },
+    {
+      "type": "video",
+      "id": "hero_video",
+      "label": "Hero - vidéo"
+    },
+    {
+      "type": "text",
+      "id": "primary_button_label",
+      "label": "Bouton principal",
+      "default": "Magasiner la Crown Series"
+    },
+    {
+      "type": "url",
+      "id": "primary_button_link",
+      "label": "Lien bouton principal"
+    },
+    {
+      "type": "text",
+      "id": "secondary_button_label",
+      "label": "Bouton secondaire",
+      "default": "Voir nos réalisations"
+    },
+    {
+      "type": "url",
+      "id": "secondary_button_link",
+      "label": "Lien bouton secondaire"
+    },
+    {
+      "type": "text",
+      "id": "badge_1",
+      "label": "Badge 1",
+      "default": "60 000 lb de résistance"
+    },
+    {
+      "type": "text",
+      "id": "badge_2",
+      "label": "Badge 2",
+      "default": "assemblable sans outils"
+    },
+    {
+      "type": "text",
+      "id": "badge_3",
+      "label": "Badge 3",
+      "default": "Résidentiel et commercial"
+    },
+    {
+      "type": "text",
+      "id": "signature_label",
+      "label": "Carte signature - label",
+      "default": "Produit signature"
+    },
+    {
+      "type": "text",
+      "id": "signature_title",
+      "label": "Carte signature - titre",
+      "default": "Crown Series"
+    },
+    {
+      "type": "textarea",
+      "id": "signature_text",
+      "label": "Carte signature - texte",
+      "default": "Gamme exclusive, image haut de gamme, clipsage avancé et finition conçue pour les projets qui exigent plus qu’une solution générique."
+    },
+    {
+      "type": "text",
+      "id": "why_title",
+      "label": "Titre section Pourquoi",
+      "default": "Un produit qui ne vend pas juste des tuiles. Il vend une transformation."
+    },
+    {
+      "type": "richtext",
+      "id": "why_text",
+      "label": "Texte section Pourquoi",
+      "default": "<p>AceFloor transforme les garages, showrooms, ateliers et espaces spécialisés en environnements propres, durables et visuellement percutants. La Crown Series a été pensée pour offrir une résistance extrême, une finition haut de gamme et une installation rapide.</p>"
+    },
+    {
+      "type": "text",
+      "id": "credibility_title",
+      "label": "Titre section crédibilité",
+      "default": "La crédibilité ne se déclare pas. Elle se démontre."
+    },
+    {
+      "type": "richtext",
+      "id": "credibility_text",
+      "label": "Texte section crédibilité",
+      "default": "<p>AceFloor s’impose par ses réalisations, sa visibilité, ses projets concrets et sa capacité à intervenir dans des environnements où le standard visuel et la qualité perçue comptent réellement.</p>"
+    },
+    {
+      "type": "text",
+      "id": "comparison_title",
+      "label": "Titre section comparatif",
+      "default": "Crown Series vs tuiles génériques"
+    },
+    {
+      "type": "richtext",
+      "id": "comparison_text",
+      "label": "Texte section comparatif",
+      "default": "<p>Toutes les tuiles modulaires ne se valent pas. Crown Series a été pensée pour offrir une image plus forte, une installation plus intelligente et une présence visuelle nettement supérieure aux solutions génériques qu’on voit partout.</p>"
+    },
+    {
+      "type": "text",
+      "id": "markets_title",
+      "label": "Titre section marchés",
+      "default": "Trois univers. Un même standard supérieur."
+    },
+    {
+      "type": "richtext",
+      "id": "markets_text",
+      "label": "Texte section marchés",
+      "default": "<p>Garages résidentiels, commerces, showrooms et projets spéciaux peuvent tous profiter d’une finition plus forte visuellement.</p>"
+    },
+    {
+      "type": "text",
+      "id": "categories_title",
+      "label": "Titre section catégories",
+      "default": "Acheter par gamme"
+    },
+    {
+      "type": "richtext",
+      "id": "categories_text",
+      "label": "Texte section catégories",
+      "default": "<p>Choisissez la collection adaptée à votre projet. Crown Series pour un rendu haut de gamme, solutions extérieures pour patios et spas, ou configurations spécialisées pour commerces, showrooms et espaces techniques.</p>"
+    },
+    {
+      "type": "text",
+      "id": "gallery_title",
+      "label": "Titre section galerie",
+      "default": "Des projets qui parlent avant même qu'on lise le texte."
+    },
+    {
+      "type": "richtext",
+      "id": "gallery_text",
+      "label": "Texte section galerie",
+      "default": "<p>Avant / après, showrooms, patios, VR, projets spéciaux et installations marquantes doivent démontrer le vrai potentiel des produits AceFloor.</p>"
+    },
+    {
+      "type": "text",
+      "id": "turnkey_title",
+      "label": "Titre section clé en main",
+      "default": "Une transformation clé en main, pas seulement un plancher."
+    },
+    {
+      "type": "richtext",
+      "id": "turnkey_text",
+      "label": "Texte section clé en main",
+      "default": "<p>AceFloor ne propose pas seulement des tuiles modulaires. Nous offrons une approche complète pour transformer un garage ou un espace spécialisé avec cohérence, impact visuel et exécution professionnelle.</p>"
+    },
+    {
+      "type": "text",
+      "id": "final_title",
+      "label": "Titre bloc final",
+      "default": "Parlez-nous de votre espace. On vous guide vers la bonne combinaison."
+    },
+    {
+      "type": "richtext",
+      "id": "final_text",
+      "label": "Texte bloc final",
+      "default": "<p>Garage simple, showroom, atelier, patio, VR, espace commercial ou projet signature. Le site doit pousser naturellement vers un formulaire simple, premium et rassurant.</p>"
+    },
+    {
+      "type": "text",
+      "id": "final_primary_button_label",
+      "label": "Bloc final - bouton principal",
+      "default": "Demander une soumission"
+    },
+    {
+      "type": "url",
+      "id": "final_primary_button_link",
+      "label": "Bloc final - lien bouton principal"
+    },
+    {
+      "type": "text",
+      "id": "final_secondary_button_label",
+      "label": "Bloc final - bouton secondaire",
+      "default": "Voir la galerie"
+    },
+    {
+      "type": "url",
+      "id": "final_secondary_button_link",
+      "label": "Bloc final - lien bouton secondaire"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Pourquoi AceFloor",
+      "limit": 3,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Résistance extrême"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "Conçues pour supporter des charges lourdes, résister à l’usure, aux impacts et aux conditions exigeantes."
+        }
+      ]
+    },
+    {
+      "type": "credibility",
+      "name": "Crédibilité",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Des résultats concrets"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "AceFloor repose sur des réalisations visibles, une capacité d’intervention réelle et une présence de plus en plus forte dans son marché."
+        }
+      ]
+    },
+    {
+      "type": "comparison",
+      "name": "Comparatif",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Signature visuelle exclusive"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "Avec sa couronne centrale distinctive, Crown Series affirme immédiatement un rendu haut de gamme. Les tuiles génériques remplissent une fonction. Crown Series crée un impact."
+        }
+      ]
+    },
+    {
+      "type": "market",
+      "name": "Marché",
+      "limit": 3,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Garages résidentiels"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "Une finition plus propre, plus durable et plus premium pour transformer complètement un garage."
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "name": "Catégorie boutique",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Crown Series"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "La gamme signature AceFloor pour les projets haut de gamme."
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Lien"
+        }
+      ]
+    },
+    {
+      "type": "gallery",
+      "name": "Carte galerie",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Avant / Après garage"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "Un vrai impact visuel, immédiatement perceptible."
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Lien"
+        }
+      ]
+    },
+    {
+      "type": "turnkey",
+      "name": "Clé en main",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Conseil et orientation"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "Nous vous guidons vers la bonne configuration selon votre espace, votre usage et le rendu recherché."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "AceFloor Homepage",
+      "blocks": [
+        { "type": "feature" },
+        { "type": "feature" },
+        { "type": "feature" },
+        { "type": "credibility" },
+        { "type": "credibility" },
+        { "type": "credibility" },
+        { "type": "credibility" },
+        { "type": "comparison" },
+        { "type": "comparison" },
+        { "type": "comparison" },
+        { "type": "comparison" },
+        { "type": "market" },
+        { "type": "market" },
+        { "type": "market" },
+        { "type": "category" },
+        { "type": "category" },
+        { "type": "category" },
+        { "type": "turnkey" },
+        { "type": "turnkey" },
+        { "type": "turnkey" },
+        { "type": "turnkey" },
+        { "type": "gallery" },
+        { "type": "gallery" },
+        { "type": "gallery" }
+      ]
+    }
+  ]
+}
+{% endschema %}

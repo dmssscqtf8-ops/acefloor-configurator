@@ -1,0 +1,28 @@
+{
+  "name": "@acefloor/web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@acefloor/core-engine": "file:../../packages/core-engine",
+    "@react-three/drei": "latest",
+    "@react-three/fiber": "latest",
+    "konva": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-konva": "latest",
+    "three": "latest",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest"
+  }
+}
