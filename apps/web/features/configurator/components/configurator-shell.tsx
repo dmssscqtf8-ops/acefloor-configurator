@@ -39,6 +39,85 @@ type ConfiguratorShellProps = {
   initialProductId?: string;
 };
 
+type ProjectTemplate = {
+  id: string;
+  label: string;
+  blurb: string;
+  roomWidth: number;
+  roomLength: number;
+  unit: "ft";
+  garageDoorEnabled: boolean;
+  garageDoorWidth: number;
+  garageDoorOffset: number;
+  productId: string;
+  primaryColor: string;
+  secondaryColor: string;
+  layoutMode: "solid" | "checker" | "border" | "manual";
+};
+
+const projectTemplates: ProjectTemplate[] = [
+  {
+    id: "single-garage",
+    label: "Garage simple",
+    blurb: "12 x 20 pi, ideal pour une mise en ligne rapide avec ratio budget / impact tres propre.",
+    roomWidth: 12,
+    roomLength: 20,
+    unit: "ft",
+    garageDoorEnabled: true,
+    garageDoorWidth: 9,
+    garageDoorOffset: 1.5,
+    productId: "acetrax",
+    primaryColor: "Noir",
+    secondaryColor: "Gris fonce",
+    layoutMode: "checker",
+  },
+  {
+    id: "double-garage",
+    label: "Garage double",
+    blurb: "20 x 24 pi, le cas commercial le plus frequemment demande pour un resultat premium residentiel.",
+    roomWidth: 20,
+    roomLength: 24,
+    unit: "ft",
+    garageDoorEnabled: true,
+    garageDoorWidth: 16,
+    garageDoorOffset: 2,
+    productId: "crown-series",
+    primaryColor: "Noir",
+    secondaryColor: "Charcoal",
+    layoutMode: "checker",
+  },
+  {
+    id: "showroom-bay",
+    label: "Baie showroom",
+    blurb: "24 x 30 pi, setup plus graphique avec lecture haut de gamme immediate pour vehicules d'exposition.",
+    roomWidth: 24,
+    roomLength: 30,
+    unit: "ft",
+    garageDoorEnabled: false,
+    garageDoorWidth: 0,
+    garageDoorOffset: 0,
+    productId: "crown-cubic",
+    primaryColor: "Noir",
+    secondaryColor: "Blanc",
+    layoutMode: "border",
+  },
+  {
+    id: "workshop-bay",
+    label: "Atelier performance",
+    blurb: "18 x 24 pi, plus robuste, plus technique, calibre pour la fonctionnalite avant tout.",
+    roomWidth: 18,
+    roomLength: 24,
+    unit: "ft",
+    garageDoorEnabled: true,
+    garageDoorWidth: 10,
+    garageDoorOffset: 4,
+    productId: "crown-grip",
+    primaryColor: "Charcoal",
+    secondaryColor: "Rouge",
+    layoutMode: "solid",
+  },
+];
+
 export function ConfiguratorShell({
   initialProductId,
 }: ConfiguratorShellProps) {
@@ -49,6 +128,7 @@ export function ConfiguratorShell({
   const [colorPanelTarget, setColorPanelTarget] = useState<"primary" | "secondary" | "brush">("brush");
   const [exportRequestId, setExportRequestId] = useState(0);
   const [clearMeasureRequestId, setClearMeasureRequestId] = useState(0);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const roomWidth = useConfiguratorStore((state) => state.roomWidth);
   const roomLength = useConfiguratorStore((state) => state.roomLength);
   const garageDoorEnabled = useConfiguratorStore((state) => state.garageDoorEnabled);
@@ -71,6 +151,7 @@ export function ConfiguratorShell({
   const setGarageDoorOffset = useConfiguratorStore((state) => state.setGarageDoorOffset);
   const setUnit = useConfiguratorStore((state) => state.setUnit);
   const addObstacle = useConfiguratorStore((state) => state.addObstacle);
+  const clearObstacles = useConfiguratorStore((state) => state.clearObstacles);
   const removeObstacle = useConfiguratorStore((state) => state.removeObstacle);
   const updateObstacle = useConfiguratorStore((state) => state.updateObstacle);
   const setSelectedProductId = useConfiguratorStore((state) => state.setSelectedProductId);
@@ -88,6 +169,11 @@ export function ConfiguratorShell({
     catalogProducts.find((product) => product.id === selectedProductId) ??
     catalogProducts[0];
   const paintedTileCount = Object.keys(paintedTileColors).length;
+  const boxCoverageSqFt =
+    (selectedProduct.tilesPerBox *
+      selectedProduct.tileWidthIn *
+      selectedProduct.tileHeightIn) /
+    144;
   const productSelectionOrder = [
     "crown-series",
     "crown-cubic",
@@ -156,6 +242,16 @@ export function ConfiguratorShell({
     setSecondaryColor,
   ]);
 
+  useEffect(() => {
+    if (copyState === "idle") return;
+
+    const timeout = window.setTimeout(() => {
+      setCopyState("idle");
+    }, 2200);
+
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
+
   const preview = buildRoomPreview({
     roomWidth,
     roomLength,
@@ -176,6 +272,52 @@ export function ConfiguratorShell({
     wastePercent: selectedProduct.wastePercent,
     includePerimeterBorders: layoutMode === "border",
   });
+  const boxesRequired = Math.max(
+    1,
+    Math.ceil(estimate.totalTiles / selectedProduct.tilesPerBox),
+  );
+  const currentTemplate = projectTemplates.find((template) =>
+    matchesTemplate({
+      template,
+      roomWidth,
+      roomLength,
+      garageDoorEnabled,
+      garageDoorWidth,
+      garageDoorOffset,
+      unit,
+      productId: selectedProduct.id,
+      layoutMode,
+      primaryColor,
+      secondaryColor,
+    }),
+  );
+  const projectStory = getProjectStory({
+    product: selectedProduct,
+    areaSqFt: estimate.areaSqFt,
+    obstaclesCount: obstacles.length,
+    garageDoorEnabled,
+    layoutMode,
+  });
+  const projectBrief = buildProjectBrief({
+    roomWidth,
+    roomLength,
+    unit,
+    productName: selectedProduct.name,
+    productPositioning: selectedProduct.positioningLabel,
+    layoutMode,
+    primaryColor,
+    secondaryColor,
+    estimateAreaSqFt: estimate.areaSqFt,
+    totalTiles: estimate.totalTiles,
+    boxesRequired,
+    estimateTotal: estimate.totalEstimate,
+    garageDoorEnabled,
+    garageDoorWidth,
+    garageDoorOffset,
+    obstaclesCount: obstacles.length,
+  });
+  const packageCoverageText = `${(boxesRequired * boxCoverageSqFt).toFixed(1)} pi² de couverture theorique`;
+  const tileFormatLabel = `${selectedProduct.tileWidthIn}" x ${selectedProduct.tileHeightIn}"`;
 
   const handleExportReady = useCallback((dataUrl: string) => {
     const link = document.createElement("a");
@@ -183,6 +325,51 @@ export function ConfiguratorShell({
     link.download = `acefloor-plan-${selectedProduct.id}-${Date.now()}.png`;
     link.click();
   }, [selectedProduct.id]);
+
+  const applyProjectTemplate = useCallback((template: ProjectTemplate) => {
+    setUnit(template.unit);
+    setRoomWidth(template.roomWidth);
+    setRoomLength(template.roomLength);
+    setGarageDoorEnabled(template.garageDoorEnabled);
+    setGarageDoorWidth(template.garageDoorWidth);
+    setGarageDoorOffset(template.garageDoorOffset);
+    clearObstacles();
+    clearPaintedTiles();
+    setSelectedProductId(template.productId);
+    setPrimaryColor(template.primaryColor);
+    setSecondaryColor(template.secondaryColor);
+    setActivePaintColor(template.primaryColor);
+    setActivePaintTool("paint");
+    setLayoutMode(template.layoutMode);
+    setInteractionMode("paint");
+    setPaintScope("tile");
+    setActiveToolPanel(null);
+    setCopyState("idle");
+  }, [
+    clearObstacles,
+    clearPaintedTiles,
+    setActivePaintColor,
+    setActivePaintTool,
+    setGarageDoorEnabled,
+    setGarageDoorOffset,
+    setGarageDoorWidth,
+    setLayoutMode,
+    setPrimaryColor,
+    setRoomLength,
+    setRoomWidth,
+    setSecondaryColor,
+    setSelectedProductId,
+    setUnit,
+  ]);
+
+  const handleCopyProjectBrief = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(projectBrief);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+  }, [projectBrief]);
 
   return (
     <section
@@ -214,9 +401,93 @@ export function ConfiguratorShell({
         </div>
       </section>
 
+      <section className="workspace-brief-grid" aria-label="Lancement rapide">
+        <article className="workspace-brief-card workspace-brief-card--templates">
+          <div className="workspace-brief-head">
+            <span className="workspace-card-kicker">Depart rapide</span>
+            <h3>Templates qui te mettent direct dans un vrai cas client</h3>
+          </div>
+          <div className="workspace-template-grid">
+            {projectTemplates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className={`workspace-template-card${
+                  currentTemplate?.id === template.id ? " active" : ""
+                }`}
+                onClick={() => applyProjectTemplate(template)}
+              >
+                <strong>{template.label}</strong>
+                <span>
+                  {template.roomWidth} x {template.roomLength} {template.unit}
+                </span>
+                <small>{template.blurb}</small>
+              </button>
+            ))}
+          </div>
+        </article>
+
+        <article className="workspace-brief-card">
+          <div className="workspace-brief-head">
+            <span className="workspace-card-kicker">Reco instantanee</span>
+            <h3>{selectedProduct.name} semble juste pour ce projet</h3>
+          </div>
+          <div className="workspace-brief-stack">
+            <p className="muted-copy" style={{ margin: 0 }}>
+              {projectStory}
+            </p>
+            <div className="tag-row">
+              <span className="tag">{selectedProduct.positioningLabel}</span>
+              <span className="tag">{selectedProduct.finishLabel}</span>
+              <span className="tag">{tileFormatLabel}</span>
+              <span className="tag">{selectedProduct.tileWeightGrams} g</span>
+            </div>
+          </div>
+        </article>
+
+        <article className="workspace-brief-card">
+          <div className="workspace-brief-head">
+            <span className="workspace-card-kicker">Package projet</span>
+            <h3>Ce que le commercial peut sortir tout de suite</h3>
+          </div>
+          <div className="workspace-package-grid">
+            <div className="workspace-package-metric">
+              <span>Surface utile</span>
+              <strong>{estimate.areaSqFt.toFixed(1)} pi²</strong>
+            </div>
+            <div className="workspace-package-metric">
+              <span>Total tuiles</span>
+              <strong>{estimate.totalTiles}</strong>
+            </div>
+            <div className="workspace-package-metric">
+              <span>Boites</span>
+              <strong>{boxesRequired}</strong>
+            </div>
+            <div className="workspace-package-metric">
+              <span>Budget estime</span>
+              <strong>{formatCurrency(estimate.totalEstimate)}</strong>
+            </div>
+          </div>
+          <p className="muted-copy" style={{ margin: 0 }}>
+            {packageCoverageText}. Base ideale pour un brief, un export image ou une soumission rapide.
+          </p>
+        </article>
+      </section>
+
       <section className="main-grid main-grid--workspace">
         <aside className="control-panel control-panel--sticky">
           <div className="section-stack">
+            <section>
+              <h2 className="section-title">Modele actif</h2>
+              <div className="step-item compact">
+                <strong>{currentTemplate?.label ?? "Projet sur mesure"}</strong>
+                <span>
+                  {currentTemplate?.blurb ??
+                    "Configuration libre: dimensions, seuil, palette et decoupes ont ete adaptes au projet en cours."}
+                </span>
+              </div>
+            </section>
+
             <section>
               <h2 className="section-title">Dimensions</h2>
               <div className="field-grid two-up">
@@ -695,20 +966,44 @@ export function ConfiguratorShell({
               </div>
             </section>
 
+            <section className="workspace-product-spotlight">
+              <div className="workspace-card-head">
+                <span className="workspace-card-kicker">Lecture produit</span>
+                <strong>{selectedProduct.name}</strong>
+              </div>
+              <p className="muted-copy" style={{ margin: 0 }}>
+                {selectedProduct.heroSummary}
+              </p>
+              <div className="tag-row">
+                <span className="tag">{selectedProduct.positioningLabel}</span>
+                <span className="tag">{selectedProduct.finishLabel}</span>
+                <span className="tag">{selectedProduct.tilesPerBox} tuiles / boite</span>
+                <span className="tag">{formatCurrency(selectedProduct.pricePerTile)} / tuile</span>
+              </div>
+            </section>
+
             <section className="summary-panel summary-panel--compact">
               <h2 className="summary-title">Résumé</h2>
               <div className="summary-grid">
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Pertes</span>
+                  <span className="summary-metric-label">Pertes + coupes</span>
                   <strong className="summary-metric-value">
                     {estimate.wasteTiles} tuiles
                   </strong>
                 </div>
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Edges</span>
+                  <span className="summary-metric-label">Edges porte</span>
                   <strong className="summary-metric-value">
                     {estimate.garageDoorEdgeTotalPieces} pcs
                   </strong>
+                </div>
+                <div className="summary-metric compact">
+                  <span className="summary-metric-label">Boites a sortir</span>
+                  <strong className="summary-metric-value">{boxesRequired}</strong>
+                </div>
+                <div className="summary-metric compact">
+                  <span className="summary-metric-label">Format de tuile</span>
+                  <strong className="summary-metric-value">{tileFormatLabel}</strong>
                 </div>
               </div>
               <p className="summary-note">
@@ -731,13 +1026,18 @@ export function ConfiguratorShell({
             </section>
 
             <section>
-              <h2 className="section-title">Actions</h2>
+              <h2 className="section-title">Actions commerciales</h2>
               <div className="action-row">
-                <button type="button" className="button primary">
-                  Sauvegarder le projet
-                </button>
-                <button type="button" className="button">
-                  Générer un devis
+                <button
+                  type="button"
+                  className="button primary"
+                  onClick={handleCopyProjectBrief}
+                >
+                  {copyState === "copied"
+                    ? "Brief copie"
+                    : copyState === "error"
+                      ? "Copie impossible"
+                      : "Copier le brief"}
                 </button>
                 <button
                   type="button"
@@ -746,7 +1046,19 @@ export function ConfiguratorShell({
                 >
                   Export image
                 </button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => {
+                    clearPaintedTiles();
+                    clearObstacles();
+                    setClearMeasureRequestId((current) => current + 1);
+                  }}
+                >
+                  Reset projet
+                </button>
               </div>
+              <p className="summary-note">{projectBrief}</p>
             </section>
           </div>
         </aside>
@@ -757,6 +1069,115 @@ export function ConfiguratorShell({
 
 function getColorHex(color: string): string {
   return paintColorMap[color] ?? "#2f343c";
+}
+
+function matchesTemplate(input: {
+  template: ProjectTemplate;
+  roomWidth: number;
+  roomLength: number;
+  garageDoorEnabled: boolean;
+  garageDoorWidth: number;
+  garageDoorOffset: number;
+  unit: string;
+  productId: string;
+  layoutMode: string;
+  primaryColor: string;
+  secondaryColor: string;
+}): boolean {
+  return (
+    input.roomWidth === input.template.roomWidth &&
+    input.roomLength === input.template.roomLength &&
+    input.garageDoorEnabled === input.template.garageDoorEnabled &&
+    input.garageDoorWidth === input.template.garageDoorWidth &&
+    input.garageDoorOffset === input.template.garageDoorOffset &&
+    input.unit === input.template.unit &&
+    input.productId === input.template.productId &&
+    input.layoutMode === input.template.layoutMode &&
+    input.primaryColor === input.template.primaryColor &&
+    input.secondaryColor === input.template.secondaryColor
+  );
+}
+
+function getProjectStory(input: {
+  product: (typeof catalogProducts)[number];
+  areaSqFt: number;
+  obstaclesCount: number;
+  garageDoorEnabled: boolean;
+  layoutMode: string;
+}): string {
+  const scaleStory =
+    input.areaSqFt >= 600
+      ? "Tu es deja dans une surface de calibre showroom ou grand garage double."
+      : input.areaSqFt >= 350
+        ? "On est sur un vrai projet de garage premium, pas un simple coin utilitaire."
+        : "La surface reste compacte, donc le ratio impact visuel / budget est tres pilotable.";
+
+  const complexityStory =
+    input.obstaclesCount > 0
+      ? `Il y a ${input.obstaclesCount} zone${input.obstaclesCount > 1 ? "s" : ""} a contourner, donc il faut privilegier une lecture nette et un plan qui reste facile a expliquer.`
+      : input.garageDoorEnabled
+        ? "La presence d'une ouverture de garage renforce l'interet d'une gamme lisible et d'un package edges propre."
+        : "Sans ouverture frontale, tu peux pousser plus fort le rendu design et la composition.";
+
+  const patternStory =
+    input.layoutMode === "border"
+      ? "Le mode bordure cree tout de suite une lecture plus architecturale."
+      : input.layoutMode === "checker"
+        ? "Le damier reste le meilleur raccourci commercial pour faire comprendre le resultat final."
+        : input.layoutMode === "manual"
+          ? "Le mode libre te permet deja de vendre une personnalisation plus exclusive."
+          : "Le mode uni met davantage l'accent sur la matiere et la gamme que sur le motif.";
+
+  return `${input.product.positioningLabel}. ${scaleStory} ${complexityStory} ${patternStory}`;
+}
+
+function getLayoutLabel(layoutMode: string): string {
+  switch (layoutMode) {
+    case "solid":
+      return "Uni";
+    case "checker":
+      return "Damier";
+    case "border":
+      return "Bordure";
+    case "manual":
+      return "Libre";
+    default:
+      return layoutMode;
+  }
+}
+
+function buildProjectBrief(input: {
+  roomWidth: number;
+  roomLength: number;
+  unit: string;
+  productName: string;
+  productPositioning: string;
+  layoutMode: string;
+  primaryColor: string;
+  secondaryColor: string;
+  estimateAreaSqFt: number;
+  totalTiles: number;
+  boxesRequired: number;
+  estimateTotal: number;
+  garageDoorEnabled: boolean;
+  garageDoorWidth: number;
+  garageDoorOffset: number;
+  obstaclesCount: number;
+}): string {
+  return [
+    `Projet ${input.roomWidth} x ${input.roomLength} ${input.unit}`,
+    `Gamme: ${input.productName} (${input.productPositioning})`,
+    `Motif: ${getLayoutLabel(input.layoutMode)}`,
+    `Palette: ${input.primaryColor}${input.secondaryColor ? ` / ${input.secondaryColor}` : ""}`,
+    `Surface utile: ${input.estimateAreaSqFt.toFixed(1)} pi²`,
+    `Total tuiles: ${input.totalTiles}`,
+    `Boites estimees: ${input.boxesRequired}`,
+    `Budget estime: ${formatCurrency(input.estimateTotal)}`,
+    input.garageDoorEnabled
+      ? `Porte de garage: oui (${input.garageDoorWidth} ${input.unit}, offset ${input.garageDoorOffset} ${input.unit})`
+      : "Porte de garage: non",
+    `Decoupes: ${input.obstaclesCount}`,
+  ].join(" | ");
 }
 
 type ToolIconName =

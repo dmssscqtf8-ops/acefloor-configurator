@@ -5,12 +5,15 @@ export type CatalogProduct = {
   description: string;
   seoDescription: string;
   heroSummary: string;
+  positioningLabel: string;
+  finishLabel: string;
   idealFor: string[];
   featureBullets: string[];
   tileWidthIn: number;
   tileHeightIn: number;
   tileThicknessIn: number;
   tileWeightGrams: number;
+  tilesPerBox: number;
   pricePerTile: number;
   wastePercent: number;
   availableColors: string[];
@@ -150,6 +153,8 @@ export const catalogProducts: CatalogProduct[] = [
       "La Crown Series est la gamme signature AceFloor pour les projets de garage, showroom et atelier qui demandent une dalle modulaire au rendu haut de gamme et a la pose rapide.",
     heroSummary:
       "La gamme signature pour les garages, showrooms et ateliers premium.",
+    positioningLabel: "Signature premium",
+    finishLabel: "Ouverte, luxe showroom",
     idealFor: [
       "garages residentiels haut de gamme",
       "showrooms automobiles",
@@ -164,6 +169,7 @@ export const catalogProducts: CatalogProduct[] = [
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
     tileWeightGrams: 600,
+    tilesPerBox: 12,
     pricePerTile: 8.9,
     wastePercent: 9,
     availableColors: crownPalette,
@@ -181,6 +187,8 @@ export const catalogProducts: CatalogProduct[] = [
       "La Crown Grip mise sur une surface pleine et texturee pour les projets ou l'adherence visuelle et la sensation de robustesse priment sur le reste.",
     heroSummary:
       "Une dalle modulaire pleine avec texture grip pour les espaces qui doivent paraitre massifs et techniques.",
+    positioningLabel: "Performance technique",
+    finishLabel: "Pleine, plus musclee",
     idealFor: [
       "garages de collection",
       "zones techniques avec forte presence visuelle",
@@ -195,6 +203,7 @@ export const catalogProducts: CatalogProduct[] = [
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
     tileWeightGrams: 600,
+    tilesPerBox: 12,
     pricePerTile: 9.25,
     wastePercent: 9,
     availableColors: crownPalette,
@@ -215,6 +224,8 @@ export const catalogProducts: CatalogProduct[] = [
       "La Crown Cubic est pensee pour les projets qui veulent sortir du damier classique avec une texture geometrique plus marquee et un rendu graphique fort.",
     heroSummary:
       "Une variante geometrique pour les designs de garage plus audacieux.",
+    positioningLabel: "Design statement",
+    finishLabel: "Geometrique, graphique",
     idealFor: [
       "garages design",
       "espaces commerciaux qui cherchent un motif distinctif",
@@ -229,6 +240,7 @@ export const catalogProducts: CatalogProduct[] = [
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
     tileWeightGrams: 600,
+    tilesPerBox: 12,
     pricePerTile: 9.5,
     wastePercent: 9,
     availableColors: crownPalette,
@@ -249,6 +261,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Acetrax conserve le format modulaire AceFloor dans une version plus legere, adaptee aux projets qui veulent equilibrer impact visuel, vitesse de pose et budget.",
     heroSummary:
       "Une option plus legere pour les projets modulaires qui veulent rester efficaces.",
+    positioningLabel: "Point d'entree premium",
+    finishLabel: "Legere, rapide a soumettre",
     idealFor: [
       "garages polyvalents",
       "amenagements qui cherchent un point d'entree plus accessible",
@@ -263,6 +277,7 @@ export const catalogProducts: CatalogProduct[] = [
     tileHeightIn: tileSizeIn,
     tileThicknessIn,
     tileWeightGrams: 500,
+    tilesPerBox: 12,
     pricePerTile: 7.95,
     wastePercent: 9,
     availableColors: acetraxPalette,

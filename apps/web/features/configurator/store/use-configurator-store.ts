@@ -51,6 +51,7 @@ type ConfiguratorState = {
   clearPaintedTiles: () => void;
   prunePaintedTiles: (allowedColors: string[]) => void;
   addObstacle: () => void;
+  clearObstacles: () => void;
   removeObstacle: (id: string) => void;
   updateObstacle: (
     id: string,
@@ -166,6 +167,7 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
 
     set({ obstacles: [...state.obstacles, obstacle] });
   },
+  clearObstacles: () => set({ obstacles: [] }),
   removeObstacle: (id) =>
     set((state) => ({
       obstacles: state.obstacles.filter((obstacle) => obstacle.id !== id),
