@@ -314,14 +314,6 @@ export function ConfiguratorShell({
       secondaryColor,
     }),
   );
-  const projectStory = getProjectStory({
-    product: selectedProduct,
-    areaSqFt: estimate.areaSqFt,
-    obstaclesCount: obstacles.length,
-    garageDoorEnabled,
-    layoutMode,
-    complexityLabel: estimate.complexityLabel,
-  });
   const projectBrief = buildProjectBrief({
     roomWidth,
     roomLength,
@@ -347,17 +339,12 @@ export function ConfiguratorShell({
     garageDoorOffset,
     obstaclesCount: obstacles.length,
   });
-  const packageCoverageText =
-    estimate.boxesRequired > 0
-      ? `${estimate.boxesRequired} boites de ${selectedProduct.tilesPerBox} tuiles couvrent environ ${estimate.orderedBoxCoverageSqFt.toFixed(1)} pi², soit ${estimate.coverageOverageSqFt.toFixed(1)} pi² de marge due au conditionnement`
-      : "Aucune boite requise pour le moment";
   const tileFormatLabel = `${selectedProduct.tileWidthIn}" x ${selectedProduct.tileHeightIn}"`;
-  const projectLabel = currentTemplate?.label ?? "Projet sur mesure";
   const controlsSummary = [
     `${formatDimensionValue(roomWidth, unit)} x ${formatDimensionValue(roomLength, unit)}`,
     garageDoorEnabled ? "seuil garage actif" : "sans seuil garage",
     `${exteriorDoors.length} porte${exteriorDoors.length > 1 ? "s" : ""}`,
-    `${obstacles.length} decoupe${obstacles.length > 1 ? "s" : ""}`,
+    `${obstacles.length} decrochement${obstacles.length > 1 ? "s" : ""}`,
   ].join(" • ");
   const commercialSummary = [
     selectedProduct.name,
@@ -417,89 +404,38 @@ export function ConfiguratorShell({
     }
   }, [projectBrief]);
 
-  const quickLaunchSection = (
-    <section
-      className="workspace-brief-grid workspace-brief-grid--compact"
-      aria-label="Lancement rapide"
-    >
-      <article className="workspace-brief-card workspace-brief-card--templates">
-        <div className="workspace-brief-head">
+  const controlsPanelContent = (
+    <div className="section-stack">
+      <section>
+        <div className="workspace-card-head workspace-card-head--tight">
           <span className="workspace-card-kicker">Depart rapide</span>
-          <h3>Templates qui te mettent direct dans un vrai cas client</h3>
+          <strong>Templates compacts</strong>
         </div>
-        <div className="workspace-template-grid">
+        <p className="muted-copy" style={{ margin: "8px 0 0" }}>
+          {currentTemplate
+            ? `${currentTemplate.label} actif. Tu peux repartir d'une base client sans encombrer l'interface.`
+            : "Choisis une base rapide puis ajuste les dimensions et les finitions."}
+        </p>
+        <div className="compact-template-grid">
           {projectTemplates.map((template) => (
             <button
               key={template.id}
               type="button"
-              className={`workspace-template-card${
-                currentTemplate?.id === template.id ? " active" : ""
-              }`}
+              className={`template-pill${currentTemplate?.id === template.id ? " active" : ""}`}
               onClick={() => applyProjectTemplate(template)}
             >
               <strong>{template.label}</strong>
               <span>
                 {template.roomWidth} x {template.roomLength} {template.unit}
               </span>
-              <small>{template.blurb}</small>
             </button>
           ))}
         </div>
-      </article>
+      </section>
 
-      <article className="workspace-brief-card workspace-brief-card--project">
-        <div className="workspace-brief-head">
-          <span className="workspace-card-kicker">Projet actif</span>
-          <h3>{projectLabel}</h3>
-          <p className="muted-copy" style={{ margin: 0 }}>
-            {projectStory}
-          </p>
-          <div className="tag-row">
-            <span className="tag">{selectedProduct.name}</span>
-            <span className="tag">{selectedProduct.positioningLabel}</span>
-            <span className="tag">
-              {formatCurrency(selectedProduct.pricePerSqFt)} / pi²
-            </span>
-            <span className="tag">
-              {includeInstallation ? "Pose incluse" : "Pose optionnelle"}
-            </span>
-          </div>
-        </div>
-        <div className="workspace-package-grid workspace-package-grid--dense">
-          <div className="workspace-package-metric">
-            <span>Facturable</span>
-            <strong>{estimate.billableAreaSqFt.toFixed(1)} pi²</strong>
-          </div>
-          <div className="workspace-package-metric">
-            <span>Tuiles</span>
-            <strong>{estimate.totalTiles}</strong>
-          </div>
-          <div className="workspace-package-metric">
-            <span>Boites</span>
-            <strong>{estimate.boxesRequired}</strong>
-          </div>
-          <div className="workspace-package-metric">
-            <span>Materiau</span>
-            <strong>{formatCurrency(estimate.tileSubtotal)}</strong>
-          </div>
-          <div className="workspace-package-metric">
-            <span>Total</span>
-            <strong>{formatCurrency(projectTotal)}</strong>
-          </div>
-        </div>
-        <p className="muted-copy" style={{ margin: 0 }}>
-          {packageCoverageText}. Les tuiles coupees sont facturees comme des
-          tuiles pleines, sans marge de pertes ajoutee.
-        </p>
-      </article>
-    </section>
-  );
-
-  const controlsPanelContent = (
-    <div className="section-stack">
       <section>
         <h2 className="section-title">Dimensions</h2>
-        <div className="field-grid two-up">
+        <div className="field-grid two-up field-grid--dimensions">
           <DimensionField
             id="room-width"
             label="Largeur"
@@ -740,7 +676,7 @@ export function ConfiguratorShell({
       <section>
         <div className="inline-header">
           <h2 className="section-title" style={{ margin: 0 }}>
-            Decoupes
+            Decrochements
           </h2>
           <button type="button" className="button" onClick={addObstacle}>
             Ajouter
@@ -750,13 +686,13 @@ export function ConfiguratorShell({
         <div className="section-stack">
           {obstacles.length === 0 ? (
             <p className="muted-copy" style={{ margin: 0 }}>
-              Aucune decoupe.
+              Aucun decrochement.
             </p>
           ) : (
             obstacles.map((obstacle, index) => (
               <div key={obstacle.id} className="step-item compact">
                 <div className="inline-header">
-                  <strong>Decoupe {index + 1}</strong>
+                  <strong>Decrochement {index + 1}</strong>
                   <button
                     type="button"
                     className="button"
@@ -1079,7 +1015,7 @@ export function ConfiguratorShell({
           <strong>{estimate.garageDoorFrontTileCutsTotal}</strong>
           {" "}| Hors pose :{" "}
           <strong>{preview.excludedAreaSqFt.toFixed(1)} pi²</strong>
-          {" "}| Decoupes : <strong>{obstacles.length}</strong>
+          {" "}| Decrochements : <strong>{obstacles.length}</strong>
           {" "}| Bordure :{" "}
           <strong>{estimate.borderLinearFeet.toFixed(1)} pi lin.</strong>
         </p>
@@ -1151,8 +1087,6 @@ export function ConfiguratorShell({
 
         </div>
       </section>
-
-      {!isMobileLayout ? quickLaunchSection : null}
 
       <section className="workspace-main">
         <section className="canvas-panel canvas-panel--workspace workspace-panel workspace-panel--canvas">
@@ -1281,7 +1215,6 @@ export function ConfiguratorShell({
         </section>
       </section>
 
-      {isMobileLayout ? quickLaunchSection : null}
     </section>
   );
 }
@@ -1340,44 +1273,6 @@ function matchesTemplate(input: {
     input.primaryColor === input.template.primaryColor &&
     input.secondaryColor === input.template.secondaryColor
   );
-}
-
-function getProjectStory(input: {
-  product: (typeof catalogProducts)[number];
-  areaSqFt: number;
-  obstaclesCount: number;
-  garageDoorEnabled: boolean;
-  layoutMode: string;
-  complexityLabel: string;
-}): string {
-  const scaleStory =
-    input.areaSqFt >= 600
-      ? "Tu es deja dans une surface de calibre showroom ou grand garage double."
-      : input.areaSqFt >= 350
-        ? "On est sur un vrai projet de garage premium, pas un simple coin utilitaire."
-        : "La surface reste compacte, donc le ratio impact visuel / budget est tres pilotable.";
-
-  const complexityStory =
-    input.complexityLabel === "Tres technique"
-      ? "Le plan demande une vraie lecture chantier, avec plusieurs coupes et un chiffrage propre."
-      : input.complexityLabel === "Complexe"
-        ? "Le projet a assez de coupes pour justifier un chiffrage a la tuile pleine plutot qu'un simple calcul surfacique."
-        : input.obstaclesCount > 0
-          ? `Il y a ${input.obstaclesCount} zone${input.obstaclesCount > 1 ? "s" : ""} a contourner, donc il faut privilegier une lecture nette et un plan qui reste facile a expliquer.`
-          : input.garageDoorEnabled
-            ? "La presence d'une ouverture de garage renforce l'interet d'une gamme lisible et d'un package edges propre."
-            : "Sans ouverture frontale, tu peux pousser plus fort le rendu design et la composition.";
-
-  const patternStory =
-    input.layoutMode === "border"
-      ? "Le mode bordure cree tout de suite une lecture plus architecturale."
-      : input.layoutMode === "checker"
-        ? "Le damier reste le meilleur raccourci commercial pour faire comprendre le resultat final."
-        : input.layoutMode === "manual"
-          ? "Le mode libre te permet deja de vendre une personnalisation plus exclusive."
-          : "Le mode uni met davantage l'accent sur la matiere et la gamme que sur le motif.";
-
-  return `${input.product.positioningLabel}. ${scaleStory} ${complexityStory} ${patternStory} Les tuiles coupees sont comptees pleines au chiffrage.`;
 }
 
 function getLayoutLabel(layoutMode: string): string {
@@ -1582,7 +1477,7 @@ function buildProjectBrief(input: {
     input.garageDoorEnabled
       ? `Porte de garage: oui (${input.garageDoorWidth} ${input.unit}, offset ${input.garageDoorOffset} ${input.unit})`
       : "Porte de garage: non",
-    `Decoupes: ${input.obstaclesCount}`,
+    `Decrochements: ${input.obstaclesCount}`,
   ].join(" | ");
 }
 
