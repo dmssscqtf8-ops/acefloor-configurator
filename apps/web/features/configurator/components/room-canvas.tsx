@@ -128,7 +128,11 @@ export function RoomCanvas(props: RoomCanvasProps) {
   }, [props.clearMeasureRequestId]);
 
   const stageWidth = Math.max(320, Math.floor(width));
-  const stageHeight = Math.max(420, Math.floor(stageWidth * 0.62));
+  const isCompactCanvas = stageWidth < 560;
+  const stageHeight = Math.max(
+    isCompactCanvas ? 500 : 420,
+    Math.floor(stageWidth * (isCompactCanvas ? 0.82 : 0.62)),
+  );
   const preview = buildRoomPreview({
     roomWidth: props.roomWidth,
     roomLength: props.roomLength,
@@ -146,9 +150,9 @@ export function RoomCanvas(props: RoomCanvasProps) {
     exteriorDoors: props.exteriorDoors,
   });
 
-  const paddingX = 42;
-  const paddingTop = 74;
-  const paddingBottom = 42;
+  const paddingX = isCompactCanvas ? 24 : 42;
+  const paddingTop = isCompactCanvas ? 66 : 74;
+  const paddingBottom = isCompactCanvas ? 26 : 42;
   const drawableWidth = Math.max(stageWidth - paddingX * 2, 1);
   const drawableHeight = Math.max(stageHeight - paddingTop - paddingBottom, 1);
   const scale = Math.min(
@@ -170,6 +174,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
   const garageDoorX = offsetX + preview.garageDoor.xIn * scale;
   const garageDoorWidthPx = preview.garageDoor.openingWidthIn * scale;
   const garageDoorHeightPx = preview.garageDoor.setbackDepthIn * scale;
+  const showLegend = !isCompactCanvas;
 
   const applyTilePaint = (tileKey: string) => {
     if (lastPaintedTileRef.current === tileKey) return;
@@ -814,75 +819,77 @@ export function RoomCanvas(props: RoomCanvasProps) {
               />
             </Group>
 
-            <Group x={stageWidth - 198} y={stageHeight - 116}>
-              <Rect
-                width={180}
-                height={98}
-                fill="rgba(6,8,12,0.82)"
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth={1}
-                cornerRadius={16}
-              />
-              <Rect
-                x={14}
-                y={16}
-                width={14}
-                height={14}
-                fill={primaryFill}
-                cornerRadius={999}
-                stroke="rgba(255,255,255,0.18)"
-                strokeWidth={1}
-              />
-              <Text
-                x={38}
-                y={15}
-                text={props.primaryColor}
-                fill="rgba(244,245,247,0.82)"
-                fontSize={13}
-              />
-              <Rect
-                x={14}
-                y={42}
-                width={14}
-                height={14}
-                fill={secondaryFill}
-                cornerRadius={999}
-                stroke="rgba(255,255,255,0.18)"
-                strokeWidth={1}
-              />
-              <Text
-                x={38}
-                y={41}
-                text={props.secondaryColor}
-                fill="rgba(244,245,247,0.82)"
-                fontSize={13}
-              />
-              <Rect
-                x={14}
-                y={68}
-                width={14}
-                height={14}
-                fill={
-                  props.activePaintTool === "erase"
-                    ? "rgba(241, 210, 141, 0.18)"
-                    : colorMap[props.activePaintColor] ?? primaryFill
-                }
-                cornerRadius={999}
-                stroke="rgba(255,255,255,0.18)"
-                strokeWidth={1}
-              />
-              <Text
-                x={38}
-                y={67}
-                text={
-                  props.activePaintTool === "erase"
-                    ? "Effacer"
-                    : `Brush • ${props.activePaintColor}`
-                }
-                fill="rgba(244,245,247,0.82)"
-                fontSize={12}
-              />
-            </Group>
+            {showLegend ? (
+              <Group x={stageWidth - 198} y={stageHeight - 116}>
+                <Rect
+                  width={180}
+                  height={98}
+                  fill="rgba(6,8,12,0.82)"
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth={1}
+                  cornerRadius={16}
+                />
+                <Rect
+                  x={14}
+                  y={16}
+                  width={14}
+                  height={14}
+                  fill={primaryFill}
+                  cornerRadius={999}
+                  stroke="rgba(255,255,255,0.18)"
+                  strokeWidth={1}
+                />
+                <Text
+                  x={38}
+                  y={15}
+                  text={props.primaryColor}
+                  fill="rgba(244,245,247,0.82)"
+                  fontSize={13}
+                />
+                <Rect
+                  x={14}
+                  y={42}
+                  width={14}
+                  height={14}
+                  fill={secondaryFill}
+                  cornerRadius={999}
+                  stroke="rgba(255,255,255,0.18)"
+                  strokeWidth={1}
+                />
+                <Text
+                  x={38}
+                  y={41}
+                  text={props.secondaryColor}
+                  fill="rgba(244,245,247,0.82)"
+                  fontSize={13}
+                />
+                <Rect
+                  x={14}
+                  y={68}
+                  width={14}
+                  height={14}
+                  fill={
+                    props.activePaintTool === "erase"
+                      ? "rgba(241, 210, 141, 0.18)"
+                      : colorMap[props.activePaintColor] ?? primaryFill
+                  }
+                  cornerRadius={999}
+                  stroke="rgba(255,255,255,0.18)"
+                  strokeWidth={1}
+                />
+                <Text
+                  x={38}
+                  y={67}
+                  text={
+                    props.activePaintTool === "erase"
+                      ? "Effacer"
+                      : `Brush • ${props.activePaintColor}`
+                  }
+                  fill="rgba(244,245,247,0.82)"
+                  fontSize={12}
+                />
+              </Group>
+            ) : null}
           </Layer>
         </Stage>
       ) : null}

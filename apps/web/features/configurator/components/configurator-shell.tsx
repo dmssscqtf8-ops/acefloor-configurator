@@ -123,6 +123,7 @@ export function ConfiguratorShell({
 }: ConfiguratorShellProps) {
   const effectiveRoomShape = "rectangle" as const;
   const installationPricePerSqFt = 2;
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [interactionMode, setInteractionMode] = useState<"paint" | "measure">("paint");
   const [paintScope, setPaintScope] = useState<"tile" | "area">("tile");
   const [activeToolPanel, setActiveToolPanel] = useState<"colors" | null>(null);
@@ -190,6 +191,21 @@ export function ConfiguratorShell({
     { value: "border", label: "Bordure" },
     { value: "manual", label: "Libre" },
   ] as const;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 720px)");
+    const syncMobileState = () => setIsMobileLayout(mediaQuery.matches);
+
+    syncMobileState();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncMobileState);
+      return () => mediaQuery.removeEventListener("change", syncMobileState);
+    }
+
+    mediaQuery.addListener(syncMobileState);
+    return () => mediaQuery.removeListener(syncMobileState);
+  }, []);
 
   useEffect(() => {
     if (!initialProductId) return;
@@ -337,6 +353,17 @@ export function ConfiguratorShell({
       : "Aucune boite requise pour le moment";
   const tileFormatLabel = `${selectedProduct.tileWidthIn}" x ${selectedProduct.tileHeightIn}"`;
   const projectLabel = currentTemplate?.label ?? "Projet sur mesure";
+  const controlsSummary = [
+    `${formatDimensionValue(roomWidth, unit)} x ${formatDimensionValue(roomLength, unit)}`,
+    garageDoorEnabled ? "seuil garage actif" : "sans seuil garage",
+    `${exteriorDoors.length} porte${exteriorDoors.length > 1 ? "s" : ""}`,
+    `${obstacles.length} decoupe${obstacles.length > 1 ? "s" : ""}`,
+  ].join(" • ");
+  const commercialSummary = [
+    selectedProduct.name,
+    `${estimate.boxesRequired} boite${estimate.boxesRequired > 1 ? "s" : ""}`,
+    `${formatCurrency(projectTotal)}`,
+  ].join(" • ");
 
   const handleExportReady = useCallback((dataUrl: string) => {
     const link = document.createElement("a");
@@ -390,6 +417,711 @@ export function ConfiguratorShell({
     }
   }, [projectBrief]);
 
+  const quickLaunchSection = (
+    <section
+      className="workspace-brief-grid workspace-brief-grid--compact"
+      aria-label="Lancement rapide"
+    >
+      <article className="workspace-brief-card workspace-brief-card--templates">
+        <div className="workspace-brief-head">
+          <span className="workspace-card-kicker">Depart rapide</span>
+          <h3>Templates qui te mettent direct dans un vrai cas client</h3>
+        </div>
+        <div className="workspace-template-grid">
+          {projectTemplates.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              className={`workspace-template-card${
+                currentTemplate?.id === template.id ? " active" : ""
+              }`}
+              onClick={() => applyProjectTemplate(template)}
+            >
+              <strong>{template.label}</strong>
+              <span>
+                {template.roomWidth} x {template.roomLength} {template.unit}
+              </span>
+              <small>{template.blurb}</small>
+            </button>
+          ))}
+        </div>
+      </article>
+
+      <article className="workspace-brief-card workspace-brief-card--project">
+        <div className="workspace-brief-head">
+          <span className="workspace-card-kicker">Projet actif</span>
+          <h3>{projectLabel}</h3>
+          <p className="muted-copy" style={{ margin: 0 }}>
+            {projectStory}
+          </p>
+          <div className="tag-row">
+            <span className="tag">{selectedProduct.name}</span>
+            <span className="tag">{selectedProduct.positioningLabel}</span>
+            <span className="tag">
+              {formatCurrency(selectedProduct.pricePerSqFt)} / pi²
+            </span>
+            <span className="tag">
+              {includeInstallation ? "Pose incluse" : "Pose optionnelle"}
+            </span>
+          </div>
+        </div>
+        <div className="workspace-package-grid workspace-package-grid--dense">
+          <div className="workspace-package-metric">
+            <span>Facturable</span>
+            <strong>{estimate.billableAreaSqFt.toFixed(1)} pi²</strong>
+          </div>
+          <div className="workspace-package-metric">
+            <span>Tuiles</span>
+            <strong>{estimate.totalTiles}</strong>
+          </div>
+          <div className="workspace-package-metric">
+            <span>Boites</span>
+            <strong>{estimate.boxesRequired}</strong>
+          </div>
+          <div className="workspace-package-metric">
+            <span>Materiau</span>
+            <strong>{formatCurrency(estimate.tileSubtotal)}</strong>
+          </div>
+          <div className="workspace-package-metric">
+            <span>Total</span>
+            <strong>{formatCurrency(projectTotal)}</strong>
+          </div>
+        </div>
+        <p className="muted-copy" style={{ margin: 0 }}>
+          {packageCoverageText}. Les tuiles coupees sont facturees comme des
+          tuiles pleines, sans marge de pertes ajoutee.
+        </p>
+      </article>
+    </section>
+  );
+
+  const controlsPanelContent = (
+    <div className="section-stack">
+      <section>
+        <h2 className="section-title">Dimensions</h2>
+        <div className="field-grid two-up">
+          <DimensionField
+            id="room-width"
+            label="Largeur"
+            unit={unit}
+            value={roomWidth}
+            min={1}
+            onChange={setRoomWidth}
+          />
+
+          <DimensionField
+            id="room-length"
+            label="Longueur"
+            unit={unit}
+            value={roomLength}
+            min={1}
+            onChange={setRoomLength}
+          />
+        </div>
+
+        <div className="field" style={{ marginTop: 14 }}>
+          <label htmlFor="room-unit">Unité</label>
+          <select
+            id="room-unit"
+            value={unit}
+            onChange={(event) =>
+              setUnit(event.target.value as "ft" | "in" | "cm" | "m")
+            }
+          >
+            <option value="ft">Pieds</option>
+            <option value="in">Pouces</option>
+            <option value="cm">Centimètres</option>
+            <option value="m">Mètres</option>
+          </select>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="section-title">Seuil & edges</h2>
+        <div className="field" style={{ marginBottom: 14 }}>
+          <label htmlFor="garage-door-enabled">Porte de garage</label>
+          <select
+            id="garage-door-enabled"
+            value={garageDoorEnabled ? "yes" : "no"}
+            onChange={(event) => setGarageDoorEnabled(event.target.value === "yes")}
+          >
+            <option value="yes">Actif</option>
+            <option value="no">Inactif</option>
+          </select>
+        </div>
+
+        {garageDoorEnabled ? (
+          <>
+            <div className="field">
+              <label htmlFor="garage-door-width">Largeur ouverture ({unit})</label>
+              <input
+                id="garage-door-width"
+                min={0}
+                step="0.1"
+                max={roomWidth}
+                type="number"
+                inputMode={unit === "ft" ? "decimal" : "numeric"}
+                value={garageDoorWidth}
+                onChange={(event) =>
+                  setGarageDoorWidth(Number(event.target.value) || 0)
+                }
+              />
+            </div>
+
+            <div className="field" style={{ marginTop: 14 }}>
+              <label htmlFor="garage-door-offset">
+                Position porte depuis le mur gauche ({unit})
+              </label>
+              <input
+                id="garage-door-offset"
+                min={0}
+                step="0.1"
+                max={Math.max(roomWidth - garageDoorWidth, 0)}
+                type="number"
+                inputMode={unit === "ft" ? "decimal" : "numeric"}
+                value={garageDoorOffset}
+                onChange={(event) =>
+                  setGarageDoorOffset(Number(event.target.value) || 0)
+                }
+              />
+            </div>
+
+            <p className="muted-copy" style={{ margin: "10px 0 0" }}>
+              Tout le plan commence 4.5" plus bas. Devant la porte : edges sur
+              l'ouverture, coupes de 4.5" de chaque cote.
+            </p>
+          </>
+        ) : (
+          <p className="muted-copy" style={{ margin: 0 }}>
+            Aucun seuil applique au calcul.
+          </p>
+        )}
+      </section>
+
+      <section>
+        <div className="inline-header">
+          <h2 className="section-title" style={{ margin: 0 }}>
+            Portes additionnelles
+          </h2>
+          <button
+            type="button"
+            className="button"
+            onClick={addExteriorDoor}
+          >
+            Ajouter
+          </button>
+        </div>
+        <div className="section-stack">
+          {exteriorDoors.length === 0 ? (
+            <p className="muted-copy" style={{ margin: 0 }}>
+              Ajoute une porte sur le mur gauche, droit ou au fond.
+            </p>
+          ) : (
+            exteriorDoors.map((door, index) => {
+              const wallLimit = door.wall === "bottom" ? roomWidth : roomLength;
+
+              return (
+                <div key={door.id} className="step-item compact">
+                  <div className="inline-header">
+                    <strong>Porte {index + 1}</strong>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() => removeExteriorDoor(door.id)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+
+                  <div className="field-grid two-up">
+                    <div className="field">
+                      <label htmlFor={`door-kind-${door.id}`}>Type</label>
+                      <select
+                        id={`door-kind-${door.id}`}
+                        value={door.kind}
+                        onChange={(event) =>
+                          updateExteriorDoor(door.id, {
+                            kind: event.target.value as "garage" | "man",
+                          })
+                        }
+                      >
+                        <option value="man">Porte d'homme</option>
+                        <option value="garage">Porte de garage</option>
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor={`door-wall-${door.id}`}>Mur</label>
+                      <select
+                        id={`door-wall-${door.id}`}
+                        value={door.wall}
+                        onChange={(event) =>
+                          updateExteriorDoor(door.id, {
+                            wall: event.target.value as "left" | "right" | "bottom",
+                          })
+                        }
+                      >
+                        <option value="left">Gauche</option>
+                        <option value="right">Droite</option>
+                        <option value="bottom">Fond</option>
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor={`door-width-${door.id}`}>Largeur ({unit})</label>
+                      <input
+                        id={`door-width-${door.id}`}
+                        min={unit === "ft" ? 1 : 12}
+                        step={unit === "ft" ? 1 / 12 : 0.1}
+                        max={wallLimit}
+                        type="number"
+                        inputMode={unit === "ft" ? "decimal" : "numeric"}
+                        value={door.width}
+                        onChange={(event) =>
+                          updateExteriorDoor(door.id, {
+                            width: Number(event.target.value) || 0,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor={`door-offset-${door.id}`}>
+                        Position depuis l'avant ({unit})
+                      </label>
+                      <input
+                        id={`door-offset-${door.id}`}
+                        min={0}
+                        step={unit === "ft" ? 1 / 12 : 0.1}
+                        max={Math.max(wallLimit - door.width, 0)}
+                        type="number"
+                        inputMode={unit === "ft" ? "decimal" : "numeric"}
+                        value={door.offset}
+                        onChange={(event) =>
+                          updateExteriorDoor(door.id, {
+                            offset: Number(event.target.value) || 0,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <p className="muted-copy" style={{ margin: "10px 0 0" }}>
+                    {door.kind === "garage"
+                      ? "Une porte de garage cree un decrochement aligne aux tuiles pleines. Une bande de beton peut rester visible a peinturer."
+                      : "Une porte d'homme n'a pas besoin de edge devant l'ouverture."}
+                  </p>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="section-title">Soumission</h2>
+        <div className="field">
+          <label htmlFor="include-installation">Inclure la pose</label>
+          <select
+            id="include-installation"
+            value={includeInstallation ? "yes" : "no"}
+            onChange={(event) => setIncludeInstallation(event.target.value === "yes")}
+          >
+            <option value="no">Non</option>
+            <option value="yes">Oui, a 2,00 $ / pi²</option>
+          </select>
+        </div>
+        <p className="muted-copy" style={{ margin: "10px 0 0" }}>
+          La pose est calculee sur la surface facturable, donc a la tuile pleine
+          comme le materiau.
+        </p>
+      </section>
+
+      <section>
+        <div className="inline-header">
+          <h2 className="section-title" style={{ margin: 0 }}>
+            Decoupes
+          </h2>
+          <button type="button" className="button" onClick={addObstacle}>
+            Ajouter
+          </button>
+        </div>
+
+        <div className="section-stack">
+          {obstacles.length === 0 ? (
+            <p className="muted-copy" style={{ margin: 0 }}>
+              Aucune decoupe.
+            </p>
+          ) : (
+            obstacles.map((obstacle, index) => (
+              <div key={obstacle.id} className="step-item compact">
+                <div className="inline-header">
+                  <strong>Decoupe {index + 1}</strong>
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => removeObstacle(obstacle.id)}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+
+                <div className="field-grid two-up">
+                  <div className="field">
+                    <label htmlFor={`obs-x-${obstacle.id}`}>X ({unit})</label>
+                    <input
+                      id={`obs-x-${obstacle.id}`}
+                      min={0}
+                      step="0.1"
+                      type="number"
+                      inputMode={unit === "ft" ? "decimal" : "numeric"}
+                      value={obstacle.x}
+                      onChange={(event) =>
+                        updateObstacle(obstacle.id, {
+                          x: Number(event.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor={`obs-y-${obstacle.id}`}>Y ({unit})</label>
+                    <input
+                      id={`obs-y-${obstacle.id}`}
+                      min={0}
+                      step="0.1"
+                      type="number"
+                      inputMode={unit === "ft" ? "decimal" : "numeric"}
+                      value={obstacle.y}
+                      onChange={(event) =>
+                        updateObstacle(obstacle.id, {
+                          y: Number(event.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor={`obs-w-${obstacle.id}`}>Largeur ({unit})</label>
+                    <input
+                      id={`obs-w-${obstacle.id}`}
+                      min={0.5}
+                      step="0.1"
+                      type="number"
+                      inputMode={unit === "ft" ? "decimal" : "numeric"}
+                      value={obstacle.width}
+                      onChange={(event) =>
+                        updateObstacle(obstacle.id, {
+                          width: Number(event.target.value) || 0.5,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor={`obs-h-${obstacle.id}`}>Longueur ({unit})</label>
+                    <input
+                      id={`obs-h-${obstacle.id}`}
+                      min={0.5}
+                      step="0.1"
+                      type="number"
+                      inputMode={unit === "ft" ? "decimal" : "numeric"}
+                      value={obstacle.height}
+                      onChange={(event) =>
+                        updateObstacle(obstacle.id, {
+                          height: Number(event.target.value) || 0.5,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+
+  const colorToolPanel =
+    activeToolPanel === "colors" ? (
+      <div className="canvas-floating-panel">
+        <div className="tool-rail-tabs">
+          <button
+            type="button"
+            className={`tool-rail-tab${colorPanelTarget === "primary" ? " active" : ""}`}
+            onClick={() => setColorPanelTarget("primary")}
+          >
+            Principale
+          </button>
+          <button
+            type="button"
+            className={`tool-rail-tab${colorPanelTarget === "secondary" ? " active" : ""}`}
+            onClick={() => setColorPanelTarget("secondary")}
+          >
+            Secondaire
+          </button>
+          <button
+            type="button"
+            className={`tool-rail-tab${colorPanelTarget === "brush" ? " active" : ""}`}
+            onClick={() => setColorPanelTarget("brush")}
+          >
+            Tuile
+          </button>
+        </div>
+
+        <div className="tool-rail-swatches">
+          {selectedProduct.availableColors.map((color) => {
+            const isActive =
+              colorPanelTarget === "primary"
+                ? primaryColor === color
+                : colorPanelTarget === "secondary"
+                  ? secondaryColor === color
+                  : activePaintColor === color;
+
+            return (
+              <button
+                key={`tool-${color}`}
+                type="button"
+                className={`tool-rail-swatch${isActive ? " active" : ""}`}
+                title={color}
+                onClick={() => {
+                  if (colorPanelTarget === "primary") {
+                    setPrimaryColor(color);
+                    return;
+                  }
+
+                  if (colorPanelTarget === "secondary") {
+                    setSecondaryColor(color);
+                    return;
+                  }
+
+                  setInteractionMode("paint");
+                  setActivePaintColor(color);
+                  setActivePaintTool("paint");
+                }}
+              >
+                <span
+                  className="tool-rail-swatch-dot"
+                  style={{ backgroundColor: getColorHex(color) }}
+                />
+                <span className="tool-rail-swatch-label">{color}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ) : null;
+
+  const toolRailButtons = (
+    <aside className="tool-rail" aria-label="Outils du plan">
+      <ToolRailButton
+        label="Couleur"
+        icon={renderToolIcon("paint")}
+        isActive={activeToolPanel === "colors"}
+        onClick={() => {
+          setInteractionMode("paint");
+          setActivePaintTool("paint");
+          setActiveToolPanel((current) => (current === "colors" ? null : "colors"));
+        }}
+      />
+      <ToolRailButton
+        label="Effacer"
+        icon={renderToolIcon("eraser")}
+        isActive={interactionMode === "paint" && activePaintTool === "erase"}
+        onClick={() => {
+          setInteractionMode("paint");
+          setActivePaintTool("erase");
+          setActiveToolPanel(null);
+        }}
+      />
+      <ToolRailButton
+        label="Tuile"
+        icon={renderToolIcon("tile")}
+        isActive={interactionMode === "paint" && paintScope === "tile"}
+        onClick={() => {
+          setInteractionMode("paint");
+          setPaintScope("tile");
+          setActiveToolPanel(null);
+        }}
+      />
+      <ToolRailButton
+        label="Zone"
+        icon={renderToolIcon("zone")}
+        isActive={interactionMode === "paint" && paintScope === "area"}
+        onClick={() => {
+          setInteractionMode("paint");
+          setPaintScope("area");
+          setActiveToolPanel(null);
+        }}
+      />
+      <ToolRailButton
+        label="Mesure"
+        icon={renderToolIcon("measure")}
+        isActive={interactionMode === "measure"}
+        onClick={() => {
+          setInteractionMode("measure");
+          setActiveToolPanel(null);
+        }}
+      />
+      <ToolRailButton
+        label="Reset plan"
+        icon={renderToolIcon("reset")}
+        onClick={() => {
+          clearPaintedTiles();
+          setActiveToolPanel(null);
+        }}
+      />
+      <ToolRailButton
+        label="Reset cotes"
+        icon={renderToolIcon("ruler")}
+        onClick={() => {
+          setClearMeasureRequestId((current) => current + 1);
+          setActiveToolPanel(null);
+        }}
+      />
+      <ToolRailButton
+        label="Export"
+        icon={renderToolIcon("export")}
+        onClick={() => {
+          setExportRequestId((current) => current + 1);
+          setActiveToolPanel(null);
+        }}
+      />
+    </aside>
+  );
+
+  const catalogPanelContent = (
+    <div className="section-stack">
+      <section>
+        <h2 className="section-title">Gamme</h2>
+        <div className="catalog-list catalog-list--simple">
+          {orderedProducts.map((product, index) => (
+            <button
+              key={product.id}
+              type="button"
+              className={`catalog-choice${
+                product.id === selectedProductId ? " active" : ""
+              }`}
+              onClick={() => {
+                const firstColor = product.availableColors[0] ?? "Noir";
+                const secondColor = product.availableColors[1] ?? firstColor;
+
+                setSelectedProductId(product.id);
+                setPrimaryColor(firstColor);
+                setSecondaryColor(secondColor);
+                setActivePaintColor(firstColor);
+              }}
+            >
+              <span className="catalog-choice-index">{index + 1}.</span>
+              <span className="catalog-choice-name">{product.name}</span>
+              <span className="catalog-choice-meta">{product.tileWeightGrams} g</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="summary-panel summary-panel--compact">
+        <h2 className="summary-title">Details chantier</h2>
+        <div className="summary-grid">
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Coupes plan</span>
+            <strong className="summary-metric-value">
+              {estimate.cutTiles} tuiles
+            </strong>
+          </div>
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Edges porte</span>
+            <strong className="summary-metric-value">
+              {estimate.garageDoorEdgeTotalPieces} pcs
+            </strong>
+          </div>
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Overage boite</span>
+            <strong className="summary-metric-value">
+              {estimate.boxOverageTiles} tuiles
+            </strong>
+          </div>
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Hors pose</span>
+            <strong className="summary-metric-value">
+              {preview.excludedAreaSqFt.toFixed(1)} pi²
+            </strong>
+          </div>
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Complexite</span>
+            <strong className="summary-metric-value">
+              {estimate.complexityLabel}
+            </strong>
+          </div>
+        </div>
+        <p className="summary-note">
+          Materiau :{" "}
+          <strong>{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</strong>
+          {" "}| Pose :{" "}
+          <strong>
+            {includeInstallation
+              ? `${formatCurrency(installationPricePerSqFt)} / pi² incluse`
+              : "non incluse"}
+          </strong>
+          {" "}| Rendement pose :{" "}
+          <strong>{estimate.layoutEfficiencyPercent.toFixed(1)}%</strong>
+          {" "}| Format : <strong>{tileFormatLabel}</strong>
+          {" "}| Offset porte :{" "}
+          <strong>
+            {fromInches(estimate.garageDoorOffsetIn, unit).toFixed(1)} {unit}
+          </strong>
+          {" "}| Coupes avant G/D :{" "}
+          <strong>
+            {estimate.garageDoorLeftTileCuts} / {estimate.garageDoorRightTileCuts}
+          </strong>
+          {" "}| Total coupes avant :{" "}
+          <strong>{estimate.garageDoorFrontTileCutsTotal}</strong>
+          {" "}| Hors pose :{" "}
+          <strong>{preview.excludedAreaSqFt.toFixed(1)} pi²</strong>
+          {" "}| Decoupes : <strong>{obstacles.length}</strong>
+          {" "}| Bordure :{" "}
+          <strong>{estimate.borderLinearFeet.toFixed(1)} pi lin.</strong>
+        </p>
+      </section>
+
+      <section>
+        <h2 className="section-title">Actions commerciales</h2>
+        <div className="action-row">
+          <button
+            type="button"
+            className="button primary"
+            onClick={handleCopyProjectBrief}
+          >
+            {copyState === "copied"
+              ? "Brief copie"
+              : copyState === "error"
+                ? "Copie impossible"
+                : "Copier le brief"}
+          </button>
+          <button
+            type="button"
+            className="button"
+            onClick={() => setExportRequestId((current) => current + 1)}
+          >
+            Export image
+          </button>
+          <button
+            type="button"
+            className="button"
+            onClick={() => {
+              clearPaintedTiles();
+              clearObstacles();
+              setClearMeasureRequestId((current) => current + 1);
+            }}
+          >
+            Reset projet
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+
   return (
     <section
       className="page-shell page-shell--workspace"
@@ -420,424 +1152,10 @@ export function ConfiguratorShell({
         </div>
       </section>
 
-      <section className="workspace-brief-grid workspace-brief-grid--compact" aria-label="Lancement rapide">
-        <article className="workspace-brief-card workspace-brief-card--templates">
-          <div className="workspace-brief-head">
-            <span className="workspace-card-kicker">Depart rapide</span>
-            <h3>Templates qui te mettent direct dans un vrai cas client</h3>
-          </div>
-          <div className="workspace-template-grid">
-            {projectTemplates.map((template) => (
-              <button
-                key={template.id}
-                type="button"
-                className={`workspace-template-card${
-                  currentTemplate?.id === template.id ? " active" : ""
-                }`}
-                onClick={() => applyProjectTemplate(template)}
-              >
-                <strong>{template.label}</strong>
-                <span>
-                  {template.roomWidth} x {template.roomLength} {template.unit}
-                </span>
-                <small>{template.blurb}</small>
-              </button>
-            ))}
-          </div>
-        </article>
+      {!isMobileLayout ? quickLaunchSection : null}
 
-        <article className="workspace-brief-card workspace-brief-card--project">
-          <div className="workspace-brief-head">
-            <span className="workspace-card-kicker">Projet actif</span>
-            <h3>{projectLabel}</h3>
-            <p className="muted-copy" style={{ margin: 0 }}>
-              {projectStory}
-            </p>
-            <div className="tag-row">
-              <span className="tag">{selectedProduct.name}</span>
-              <span className="tag">{selectedProduct.positioningLabel}</span>
-              <span className="tag">{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</span>
-              <span className="tag">
-                {includeInstallation ? "Pose incluse" : "Pose optionnelle"}
-              </span>
-            </div>
-          </div>
-          <div className="workspace-package-grid workspace-package-grid--dense">
-            <div className="workspace-package-metric">
-              <span>Facturable</span>
-              <strong>{estimate.billableAreaSqFt.toFixed(1)} pi²</strong>
-            </div>
-            <div className="workspace-package-metric">
-              <span>Tuiles</span>
-              <strong>{estimate.totalTiles}</strong>
-            </div>
-            <div className="workspace-package-metric">
-              <span>Boites</span>
-              <strong>{estimate.boxesRequired}</strong>
-            </div>
-            <div className="workspace-package-metric">
-              <span>Materiau</span>
-              <strong>{formatCurrency(estimate.tileSubtotal)}</strong>
-            </div>
-            <div className="workspace-package-metric">
-              <span>Total</span>
-              <strong>{formatCurrency(projectTotal)}</strong>
-            </div>
-          </div>
-          <p className="muted-copy" style={{ margin: 0 }}>
-            {packageCoverageText}. Les tuiles coupees sont facturees comme des tuiles pleines, sans marge de pertes ajoutee.
-          </p>
-        </article>
-      </section>
-
-      <section className="main-grid main-grid--workspace">
-        <aside className="control-panel control-panel--sticky">
-          <div className="section-stack">
-            <section>
-              <h2 className="section-title">Dimensions</h2>
-              <div className="field-grid two-up">
-                <DimensionField
-                  id="room-width"
-                  label="Largeur"
-                  unit={unit}
-                  value={roomWidth}
-                  min={1}
-                  onChange={setRoomWidth}
-                />
-
-                <DimensionField
-                  id="room-length"
-                  label="Longueur"
-                  unit={unit}
-                  value={roomLength}
-                  min={1}
-                  onChange={setRoomLength}
-                />
-              </div>
-
-              <div className="field" style={{ marginTop: 14 }}>
-                <label htmlFor="room-unit">Unité</label>
-                <select
-                  id="room-unit"
-                  value={unit}
-                  onChange={(event) =>
-                    setUnit(event.target.value as "ft" | "in" | "cm" | "m")
-                  }
-                >
-                  <option value="ft">Pieds</option>
-                  <option value="in">Pouces</option>
-                  <option value="cm">Centimètres</option>
-                  <option value="m">Mètres</option>
-                </select>
-              </div>
-
-            </section>
-
-            <section>
-              <h2 className="section-title">Seuil & edges</h2>
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label htmlFor="garage-door-enabled">Porte de garage</label>
-                <select
-                  id="garage-door-enabled"
-                  value={garageDoorEnabled ? "yes" : "no"}
-                  onChange={(event) => setGarageDoorEnabled(event.target.value === "yes")}
-                >
-                  <option value="yes">Actif</option>
-                  <option value="no">Inactif</option>
-                </select>
-              </div>
-
-              {garageDoorEnabled ? (
-                <>
-                  <div className="field">
-                    <label htmlFor="garage-door-width">Largeur ouverture ({unit})</label>
-                    <input
-                      id="garage-door-width"
-                      min={0}
-                      step="0.1"
-                      max={roomWidth}
-                      type="number"
-                      value={garageDoorWidth}
-                      onChange={(event) =>
-                        setGarageDoorWidth(Number(event.target.value) || 0)
-                      }
-                    />
-                  </div>
-
-                  <div className="field" style={{ marginTop: 14 }}>
-                    <label htmlFor="garage-door-offset">
-                      Position porte depuis le mur gauche ({unit})
-                    </label>
-                    <input
-                      id="garage-door-offset"
-                      min={0}
-                      step="0.1"
-                      max={Math.max(roomWidth - garageDoorWidth, 0)}
-                      type="number"
-                      value={garageDoorOffset}
-                      onChange={(event) =>
-                        setGarageDoorOffset(Number(event.target.value) || 0)
-                      }
-                    />
-                  </div>
-
-                  <p className="muted-copy" style={{ margin: "10px 0 0" }}>
-                    Tout le plan commence 4.5" plus bas. Devant la porte :
-                    edges sur l'ouverture, coupes de 4.5" de chaque côté.
-                  </p>
-                </>
-              ) : (
-                <p className="muted-copy" style={{ margin: 0 }}>
-                  Aucun seuil appliqué au calcul.
-                </p>
-              )}
-            </section>
-
-            <section>
-              <div className="inline-header">
-                <h2 className="section-title" style={{ margin: 0 }}>
-                  Portes additionnelles
-                </h2>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={addExteriorDoor}
-                >
-                  Ajouter
-                </button>
-              </div>
-              <div className="section-stack">
-                {exteriorDoors.length === 0 ? (
-                  <p className="muted-copy" style={{ margin: 0 }}>
-                    Ajoute une porte sur le mur gauche, droit ou au fond.
-                  </p>
-                ) : (
-                  exteriorDoors.map((door, index) => {
-                    const wallLimit =
-                      door.wall === "bottom" ? roomWidth : roomLength;
-
-                    return (
-                      <div key={door.id} className="step-item compact">
-                        <div className="inline-header">
-                          <strong>Porte {index + 1}</strong>
-                          <button
-                            type="button"
-                            className="button"
-                            onClick={() => removeExteriorDoor(door.id)}
-                          >
-                            Supprimer
-                          </button>
-                        </div>
-
-                        <div className="field-grid two-up">
-                          <div className="field">
-                            <label htmlFor={`door-kind-${door.id}`}>Type</label>
-                            <select
-                              id={`door-kind-${door.id}`}
-                              value={door.kind}
-                              onChange={(event) =>
-                                updateExteriorDoor(door.id, {
-                                  kind: event.target.value as "garage" | "man",
-                                })
-                              }
-                            >
-                              <option value="man">Porte d'homme</option>
-                              <option value="garage">Porte de garage</option>
-                            </select>
-                          </div>
-
-                          <div className="field">
-                            <label htmlFor={`door-wall-${door.id}`}>Mur</label>
-                            <select
-                              id={`door-wall-${door.id}`}
-                              value={door.wall}
-                              onChange={(event) =>
-                                updateExteriorDoor(door.id, {
-                                  wall: event.target.value as "left" | "right" | "bottom",
-                                })
-                              }
-                            >
-                              <option value="left">Gauche</option>
-                              <option value="right">Droite</option>
-                              <option value="bottom">Fond</option>
-                            </select>
-                          </div>
-
-                          <div className="field">
-                            <label htmlFor={`door-width-${door.id}`}>
-                              Largeur ({unit})
-                            </label>
-                            <input
-                              id={`door-width-${door.id}`}
-                              min={unit === "ft" ? 1 : 12}
-                              step={unit === "ft" ? 1 / 12 : 0.1}
-                              max={wallLimit}
-                              type="number"
-                              value={door.width}
-                              onChange={(event) =>
-                                updateExteriorDoor(door.id, {
-                                  width: Number(event.target.value) || 0,
-                                })
-                              }
-                            />
-                          </div>
-
-                          <div className="field">
-                            <label htmlFor={`door-offset-${door.id}`}>
-                              Position depuis l'avant ({unit})
-                            </label>
-                            <input
-                              id={`door-offset-${door.id}`}
-                              min={0}
-                              step={unit === "ft" ? 1 / 12 : 0.1}
-                              max={Math.max(wallLimit - door.width, 0)}
-                              type="number"
-                              value={door.offset}
-                              onChange={(event) =>
-                                updateExteriorDoor(door.id, {
-                                  offset: Number(event.target.value) || 0,
-                                })
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        <p className="muted-copy" style={{ margin: "10px 0 0" }}>
-                          {door.kind === "garage"
-                            ? "Une porte de garage cree un decrochement aligne aux tuiles pleines. Une bande de beton peut rester visible a peinturer."
-                            : "Une porte d'homme n'a pas besoin de edge devant l'ouverture."}
-                        </p>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </section>
-
-            <section>
-              <h2 className="section-title">Soumission</h2>
-              <div className="field">
-                <label htmlFor="include-installation">Inclure la pose</label>
-                <select
-                  id="include-installation"
-                  value={includeInstallation ? "yes" : "no"}
-                  onChange={(event) =>
-                    setIncludeInstallation(event.target.value === "yes")
-                  }
-                >
-                  <option value="no">Non</option>
-                  <option value="yes">Oui, a 2,00 $ / pi²</option>
-                </select>
-              </div>
-              <p className="muted-copy" style={{ margin: "10px 0 0" }}>
-                La pose est calculee sur la surface facturable, donc a la tuile pleine
-                comme le materiau.
-              </p>
-            </section>
-
-            <section>
-              <div className="inline-header">
-                <h2 className="section-title" style={{ margin: 0 }}>
-                  Découpes
-                </h2>
-                <button type="button" className="button" onClick={addObstacle}>
-                  Ajouter
-                </button>
-              </div>
-
-              <div className="section-stack">
-                {obstacles.length === 0 ? (
-                  <p className="muted-copy" style={{ margin: 0 }}>
-                    Aucune découpe.
-                  </p>
-                ) : (
-                  obstacles.map((obstacle, index) => (
-                    <div key={obstacle.id} className="step-item compact">
-                      <div className="inline-header">
-                        <strong>Découpe {index + 1}</strong>
-                        <button
-                          type="button"
-                          className="button"
-                          onClick={() => removeObstacle(obstacle.id)}
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-
-                      <div className="field-grid two-up">
-                        <div className="field">
-                          <label htmlFor={`obs-x-${obstacle.id}`}>X ({unit})</label>
-                          <input
-                            id={`obs-x-${obstacle.id}`}
-                            min={0}
-                            step="0.1"
-                            type="number"
-                            value={obstacle.x}
-                            onChange={(event) =>
-                              updateObstacle(obstacle.id, {
-                                x: Number(event.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-
-                        <div className="field">
-                          <label htmlFor={`obs-y-${obstacle.id}`}>Y ({unit})</label>
-                          <input
-                            id={`obs-y-${obstacle.id}`}
-                            min={0}
-                            step="0.1"
-                            type="number"
-                            value={obstacle.y}
-                            onChange={(event) =>
-                              updateObstacle(obstacle.id, {
-                                y: Number(event.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-
-                        <div className="field">
-                          <label htmlFor={`obs-w-${obstacle.id}`}>Largeur ({unit})</label>
-                          <input
-                            id={`obs-w-${obstacle.id}`}
-                            min={0.5}
-                            step="0.1"
-                            type="number"
-                            value={obstacle.width}
-                            onChange={(event) =>
-                              updateObstacle(obstacle.id, {
-                                width: Number(event.target.value) || 0.5,
-                              })
-                            }
-                          />
-                        </div>
-
-                        <div className="field">
-                          <label htmlFor={`obs-h-${obstacle.id}`}>Longueur ({unit})</label>
-                          <input
-                            id={`obs-h-${obstacle.id}`}
-                            min={0.5}
-                            step="0.1"
-                            type="number"
-                            value={obstacle.height}
-                            onChange={(event) =>
-                              updateObstacle(obstacle.id, {
-                                height: Number(event.target.value) || 0.5,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          </div>
-        </aside>
-
-        <section className="canvas-panel canvas-panel--workspace">
+      <section className="workspace-main">
+        <section className="canvas-panel canvas-panel--workspace workspace-panel workspace-panel--canvas">
           <div className="canvas-toolbar canvas-toolbar--workspace">
             <div>
               <h2 className="section-title" style={{ marginBottom: 6 }}>
@@ -892,11 +1210,11 @@ export function ConfiguratorShell({
           <div className="canvas-workspace-shell">
             <div className="canvas-surface">
               <RoomCanvas
-              roomWidth={roomWidth}
-              roomLength={roomLength}
-              roomShape={effectiveRoomShape}
-              cutoutWidth={0}
-              cutoutLength={0}
+                roomWidth={roomWidth}
+                roomLength={roomLength}
+                roomShape={effectiveRoomShape}
+                cutoutWidth={0}
+                cutoutLength={0}
                 garageDoorEnabled={garageDoorEnabled}
                 garageDoorWidth={garageDoorWidth}
                 garageDoorOffset={garageDoorOffset}
@@ -931,287 +1249,70 @@ export function ConfiguratorShell({
                 }
               />
             </div>
-
-            <aside className="tool-rail" aria-label="Outils du plan">
-              <ToolRailButton
-                label="Couleur"
-                icon={renderToolIcon("paint")}
-                isActive={
-                  activeToolPanel === "colors"
-                }
-                onClick={() => {
-                  setActiveToolPanel((current) =>
-                    current === "colors" ? null : "colors",
-                  );
-                }}
-              />
-              {activeToolPanel === "colors" ? (
-                <div className="tool-rail-panel">
-                  <div className="tool-rail-tabs">
-                    <button
-                      type="button"
-                      className={`tool-rail-tab${colorPanelTarget === "primary" ? " active" : ""}`}
-                      onClick={() => setColorPanelTarget("primary")}
-                    >
-                      Principale
-                    </button>
-                    <button
-                      type="button"
-                      className={`tool-rail-tab${colorPanelTarget === "secondary" ? " active" : ""}`}
-                      onClick={() => setColorPanelTarget("secondary")}
-                    >
-                      Secondaire
-                    </button>
-                    <button
-                      type="button"
-                      className={`tool-rail-tab${colorPanelTarget === "brush" ? " active" : ""}`}
-                      onClick={() => setColorPanelTarget("brush")}
-                    >
-                      Tuile
-                    </button>
-                  </div>
-
-                  <div className="tool-rail-swatches">
-                    {selectedProduct.availableColors.map((color) => {
-                      const isActive =
-                        colorPanelTarget === "primary"
-                          ? primaryColor === color
-                          : colorPanelTarget === "secondary"
-                            ? secondaryColor === color
-                            : activePaintColor === color;
-
-                      return (
-                        <button
-                          key={`tool-${color}`}
-                          type="button"
-                          className={`tool-rail-swatch${isActive ? " active" : ""}`}
-                          title={color}
-                          onClick={() => {
-                            if (colorPanelTarget === "primary") {
-                              setPrimaryColor(color);
-                              return;
-                            }
-
-                            if (colorPanelTarget === "secondary") {
-                              setSecondaryColor(color);
-                              return;
-                            }
-
-                            setInteractionMode("paint");
-                            setActivePaintColor(color);
-                            setActivePaintTool("paint");
-                          }}
-                        >
-                          <span
-                            className="tool-rail-swatch-dot"
-                            style={{ backgroundColor: getColorHex(color) }}
-                          />
-                          <span className="tool-rail-swatch-label">{color}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-              <ToolRailButton
-                label="Effacer"
-                icon={renderToolIcon("eraser")}
-                isActive={interactionMode === "paint" && activePaintTool === "erase"}
-                onClick={() => {
-                  setInteractionMode("paint");
-                  setActivePaintTool("erase");
-                  setActiveToolPanel(null);
-                }}
-              />
-              <ToolRailButton
-                label="Tuile"
-                icon={renderToolIcon("tile")}
-                isActive={interactionMode === "paint" && paintScope === "tile"}
-                onClick={() => {
-                  setInteractionMode("paint");
-                  setPaintScope("tile");
-                  setActiveToolPanel(null);
-                }}
-              />
-              <ToolRailButton
-                label="Zone"
-                icon={renderToolIcon("zone")}
-                isActive={interactionMode === "paint" && paintScope === "area"}
-                onClick={() => {
-                  setInteractionMode("paint");
-                  setPaintScope("area");
-                  setActiveToolPanel(null);
-                }}
-              />
-              <ToolRailButton
-                label="Mesure"
-                icon={renderToolIcon("measure")}
-                isActive={interactionMode === "measure"}
-                onClick={() => {
-                  setInteractionMode("measure");
-                  setActiveToolPanel(null);
-                }}
-              />
-              <ToolRailButton
-                label="Reset plan"
-                icon={renderToolIcon("reset")}
-                onClick={() => {
-                  clearPaintedTiles();
-                  setActiveToolPanel(null);
-                }}
-              />
-              <ToolRailButton
-                label="Reset cotes"
-                icon={renderToolIcon("ruler")}
-                onClick={() => {
-                  setClearMeasureRequestId((current) => current + 1);
-                  setActiveToolPanel(null);
-                }}
-              />
-              <ToolRailButton
-                label="Export"
-                icon={renderToolIcon("export")}
-                onClick={() => {
-                  setExportRequestId((current) => current + 1);
-                  setActiveToolPanel(null);
-                }}
-              />
-            </aside>
+            <div className="canvas-overlay-dock">
+              {colorToolPanel}
+              {toolRailButtons}
+            </div>
           </div>
         </section>
 
-        <aside className="catalog-panel catalog-panel--sticky">
-          <div className="section-stack">
-            <section>
-              <h2 className="section-title">Gamme</h2>
-              <div className="catalog-list catalog-list--simple">
-                {orderedProducts.map((product, index) => (
-                  <button
-                    key={product.id}
-                    type="button"
-                    className={`catalog-choice${
-                      product.id === selectedProductId ? " active" : ""
-                    }`}
-                    onClick={() => {
-                      const firstColor = product.availableColors[0] ?? "Noir";
-                      const secondColor = product.availableColors[1] ?? firstColor;
+        <section className="workspace-sidepanels">
+          <aside className="control-panel workspace-panel workspace-panel--controls">
+            {isMobileLayout ? (
+              <WorkspaceFold
+                title="Configuration chantier"
+                subtitle={controlsSummary}
+                defaultOpen
+              >
+                {controlsPanelContent}
+              </WorkspaceFold>
+            ) : (
+              controlsPanelContent
+            )}
+          </aside>
 
-                      setSelectedProductId(product.id);
-                      setPrimaryColor(firstColor);
-                      setSecondaryColor(secondColor);
-                      setActivePaintColor(firstColor);
-                    }}
-                  >
-                    <span className="catalog-choice-index">{index + 1}.</span>
-                    <span className="catalog-choice-name">{product.name}</span>
-                    <span className="catalog-choice-meta">{product.tileWeightGrams} g</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="summary-panel summary-panel--compact">
-              <h2 className="summary-title">Détails chantier</h2>
-              <div className="summary-grid">
-                <div className="summary-metric compact">
-                  <span className="summary-metric-label">Coupes plan</span>
-                  <strong className="summary-metric-value">
-                    {estimate.cutTiles} tuiles
-                  </strong>
-                </div>
-                <div className="summary-metric compact">
-                  <span className="summary-metric-label">Edges porte</span>
-                  <strong className="summary-metric-value">
-                    {estimate.garageDoorEdgeTotalPieces} pcs
-                  </strong>
-                </div>
-                <div className="summary-metric compact">
-                  <span className="summary-metric-label">Overage boite</span>
-                  <strong className="summary-metric-value">
-                    {estimate.boxOverageTiles} tuiles
-                  </strong>
-                </div>
-                <div className="summary-metric compact">
-                  <span className="summary-metric-label">Hors pose</span>
-                  <strong className="summary-metric-value">
-                    {preview.excludedAreaSqFt.toFixed(1)} pi²
-                  </strong>
-                </div>
-                <div className="summary-metric compact">
-                  <span className="summary-metric-label">Complexite</span>
-                  <strong className="summary-metric-value">
-                    {estimate.complexityLabel}
-                  </strong>
-                </div>
-              </div>
-              <p className="summary-note">
-                Materiau :{" "}
-                <strong>{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</strong>
-                {" "}| Pose :{" "}
-                <strong>
-                  {includeInstallation
-                    ? `${formatCurrency(installationPricePerSqFt)} / pi² incluse`
-                    : "non incluse"}
-                </strong>
-                {" "}| Rendement pose :{" "}
-                <strong>{estimate.layoutEfficiencyPercent.toFixed(1)}%</strong>
-                {" "}| Format : <strong>{tileFormatLabel}</strong>
-                {" "}| Offset porte :{" "}
-                <strong>
-                  {fromInches(estimate.garageDoorOffsetIn, unit).toFixed(1)} {unit}
-                </strong>
-                {" "}| Coupes avant G/D :{" "}
-                <strong>
-                  {estimate.garageDoorLeftTileCuts} / {estimate.garageDoorRightTileCuts}
-                </strong>
-                {" "}| Total coupes avant :{" "}
-                <strong>{estimate.garageDoorFrontTileCutsTotal}</strong>
-                {" "}| Hors pose :{" "}
-                <strong>{preview.excludedAreaSqFt.toFixed(1)} pi²</strong>
-                {" "}| Decoupes : <strong>{obstacles.length}</strong>
-                {" "}| Bordure :{" "}
-                <strong>{estimate.borderLinearFeet.toFixed(1)} pi lin.</strong>
-              </p>
-            </section>
-
-            <section>
-              <h2 className="section-title">Actions commerciales</h2>
-              <div className="action-row">
-                <button
-                  type="button"
-                  className="button primary"
-                  onClick={handleCopyProjectBrief}
-                >
-                  {copyState === "copied"
-                    ? "Brief copie"
-                    : copyState === "error"
-                      ? "Copie impossible"
-                      : "Copier le brief"}
-                </button>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={() => setExportRequestId((current) => current + 1)}
-                >
-                  Export image
-                </button>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={() => {
-                    clearPaintedTiles();
-                    clearObstacles();
-                    setClearMeasureRequestId((current) => current + 1);
-                  }}
-                >
-                  Reset projet
-                </button>
-              </div>
-            </section>
-          </div>
-        </aside>
+          <aside className="catalog-panel workspace-panel workspace-panel--catalog">
+            {isMobileLayout ? (
+              <WorkspaceFold
+                title="Produit & soumission"
+                subtitle={commercialSummary}
+              >
+                {catalogPanelContent}
+              </WorkspaceFold>
+            ) : (
+              catalogPanelContent
+            )}
+          </aside>
+        </section>
       </section>
+
+      {isMobileLayout ? quickLaunchSection : null}
     </section>
+  );
+}
+
+type WorkspaceFoldProps = {
+  title: string;
+  subtitle?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+};
+
+function WorkspaceFold(props: WorkspaceFoldProps) {
+  return (
+    <details className="workspace-fold" open={props.defaultOpen}>
+      <summary className="workspace-fold-summary">
+        <div className="workspace-fold-copy">
+          <span className="workspace-card-kicker">Mobile</span>
+          <strong>{props.title}</strong>
+          {props.subtitle ? <span>{props.subtitle}</span> : null}
+        </div>
+        <span className="workspace-fold-indicator" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <div className="workspace-fold-body">{props.children}</div>
+    </details>
   );
 }
 
