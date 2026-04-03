@@ -10,6 +10,7 @@ export type RectangleEstimateInput = {
   wastePercent: number;
   pricePerTile: number;
   includePerimeterBorders?: boolean;
+  tilesPerBox?: number;
 };
 
 export type RectangleEstimate = {
@@ -19,8 +20,24 @@ export type RectangleEstimate = {
   columns: number;
   rows: number;
   fullTiles: number;
+  cutTiles: number;
+  installTiles: number;
+  baseWastePercent: number;
+  recommendedWastePercent: number;
   wasteTiles: number;
+  wasteReserveTiles: number;
   totalTiles: number;
+  tilesPerBox: number;
+  boxesRequired: number;
+  tileAreaSqFt: number;
+  boxCoverageSqFt: number;
+  orderedTileCoverageSqFt: number;
+  orderedBoxCoverageSqFt: number;
+  coverageOverageSqFt: number;
+  boxOverageTiles: number;
+  layoutEfficiencyPercent: number;
+  complexityScore: number;
+  complexityLabel: string;
   borderLinearFeet: number;
   garageDoorEdgeFullPieces: number;
   garageDoorEdgeCutPieces: number;
@@ -45,14 +62,27 @@ export function computeRectangleEstimate(
 
   const columns = Math.ceil(roomWidthIn / input.tileWidthIn);
   const rows = Math.ceil(roomLengthIn / input.tileHeightIn);
-  const fullTiles = columns * rows;
-  const wasteTiles = Math.ceil(fullTiles * (input.wastePercent / 100));
-  const totalTiles = fullTiles + wasteTiles;
+  const fullColumns = Math.floor(roomWidthIn / input.tileWidthIn);
+  const fullRows = Math.floor(roomLengthIn / input.tileHeightIn);
+  const fullTiles = fullColumns * fullRows;
+  const installTiles = columns * rows;
+  const cutTiles = Math.max(installTiles - fullTiles, 0);
   const areaSqFt = (roomWidthIn * roomLengthIn) / 144;
   const borderLinearFeet = input.includePerimeterBorders
     ? (2 * (roomWidthIn + roomLengthIn)) / 12
     : 0;
-  const tileSubtotal = totalTiles * input.pricePerTile;
+  const commercialMetrics = buildCommercialMetrics({
+    areaSqFt,
+    fullTiles,
+    cutTiles,
+    tileWidthIn: input.tileWidthIn,
+    tileHeightIn: input.tileHeightIn,
+    wastePercent: input.wastePercent,
+    tilesPerBox: input.tilesPerBox,
+    obstacleCount: 0,
+    garageDoorEnabled: false,
+  });
+  const tileSubtotal = commercialMetrics.totalTiles * input.pricePerTile;
   const borderEstimate = input.includePerimeterBorders
     ? borderLinearFeet * 4.5
     : 0;
@@ -65,8 +95,24 @@ export function computeRectangleEstimate(
     columns,
     rows,
     fullTiles,
-    wasteTiles,
-    totalTiles,
+    cutTiles,
+    installTiles,
+    baseWastePercent: commercialMetrics.baseWastePercent,
+    recommendedWastePercent: commercialMetrics.recommendedWastePercent,
+    wasteTiles: commercialMetrics.wasteReserveTiles,
+    wasteReserveTiles: commercialMetrics.wasteReserveTiles,
+    totalTiles: commercialMetrics.totalTiles,
+    tilesPerBox: commercialMetrics.tilesPerBox,
+    boxesRequired: commercialMetrics.boxesRequired,
+    tileAreaSqFt: commercialMetrics.tileAreaSqFt,
+    boxCoverageSqFt: commercialMetrics.boxCoverageSqFt,
+    orderedTileCoverageSqFt: commercialMetrics.orderedTileCoverageSqFt,
+    orderedBoxCoverageSqFt: commercialMetrics.orderedBoxCoverageSqFt,
+    coverageOverageSqFt: commercialMetrics.coverageOverageSqFt,
+    boxOverageTiles: commercialMetrics.boxOverageTiles,
+    layoutEfficiencyPercent: commercialMetrics.layoutEfficiencyPercent,
+    complexityScore: commercialMetrics.complexityScore,
+    complexityLabel: commercialMetrics.complexityLabel,
     borderLinearFeet,
     garageDoorEdgeFullPieces: 0,
     garageDoorEdgeCutPieces: 0,
@@ -97,16 +143,27 @@ export function computeEstimateFromPreview(input: {
   wastePercent: number;
   pricePerTile: number;
   includePerimeterBorders?: boolean;
+  tilesPerBox?: number;
 }): RectangleEstimate {
   const activeCells = input.preview.cells.filter((cell) => !cell.fullyExcluded);
   const fullTiles = activeCells.filter((cell) => !cell.isCut).length;
   const cutTiles = activeCells.filter((cell) => cell.isCut).length;
-  const wasteTiles = Math.ceil(activeCells.length * (input.wastePercent / 100));
-  const totalTiles = activeCells.length + wasteTiles;
+  const installTiles = activeCells.length;
   const borderLinearFeet = input.includePerimeterBorders
     ? (2 * (input.preview.roomWidthIn + input.preview.roomLengthIn)) / 12
     : 0;
-  const tileSubtotal = totalTiles * input.pricePerTile;
+  const commercialMetrics = buildCommercialMetrics({
+    areaSqFt: input.preview.usableAreaSqFt,
+    fullTiles,
+    cutTiles,
+    tileWidthIn: input.preview.tileWidthIn,
+    tileHeightIn: input.preview.tileHeightIn,
+    wastePercent: input.wastePercent,
+    tilesPerBox: input.tilesPerBox,
+    obstacleCount: input.preview.obstacles.length,
+    garageDoorEnabled: input.preview.garageDoor.enabled,
+  });
+  const tileSubtotal = commercialMetrics.totalTiles * input.pricePerTile;
   const borderEstimate = input.includePerimeterBorders
     ? borderLinearFeet * 4.5
     : 0;
@@ -119,8 +176,24 @@ export function computeEstimateFromPreview(input: {
     columns: input.preview.columns,
     rows: input.preview.rows,
     fullTiles,
-    wasteTiles: wasteTiles + cutTiles,
-    totalTiles,
+    cutTiles,
+    installTiles,
+    baseWastePercent: commercialMetrics.baseWastePercent,
+    recommendedWastePercent: commercialMetrics.recommendedWastePercent,
+    wasteTiles: commercialMetrics.wasteReserveTiles,
+    wasteReserveTiles: commercialMetrics.wasteReserveTiles,
+    totalTiles: commercialMetrics.totalTiles,
+    tilesPerBox: commercialMetrics.tilesPerBox,
+    boxesRequired: commercialMetrics.boxesRequired,
+    tileAreaSqFt: commercialMetrics.tileAreaSqFt,
+    boxCoverageSqFt: commercialMetrics.boxCoverageSqFt,
+    orderedTileCoverageSqFt: commercialMetrics.orderedTileCoverageSqFt,
+    orderedBoxCoverageSqFt: commercialMetrics.orderedBoxCoverageSqFt,
+    coverageOverageSqFt: commercialMetrics.coverageOverageSqFt,
+    boxOverageTiles: commercialMetrics.boxOverageTiles,
+    layoutEfficiencyPercent: commercialMetrics.layoutEfficiencyPercent,
+    complexityScore: commercialMetrics.complexityScore,
+    complexityLabel: commercialMetrics.complexityLabel,
     borderLinearFeet,
     garageDoorEdgeFullPieces: input.preview.garageDoor.fullEdgePieces,
     garageDoorEdgeCutPieces: input.preview.garageDoor.cutEdgePieces,
@@ -136,4 +209,102 @@ export function computeEstimateFromPreview(input: {
     borderEstimate,
     totalEstimate,
   };
+}
+
+function buildCommercialMetrics(input: {
+  areaSqFt: number;
+  fullTiles: number;
+  cutTiles: number;
+  tileWidthIn: number;
+  tileHeightIn: number;
+  wastePercent: number;
+  tilesPerBox?: number;
+  obstacleCount: number;
+  garageDoorEnabled: boolean;
+}) {
+  const installTiles = Math.max(input.fullTiles + input.cutTiles, 0);
+  const tileAreaSqFt = (input.tileWidthIn * input.tileHeightIn) / 144;
+  const layoutEfficiencyPercent =
+    installTiles > 0 && tileAreaSqFt > 0
+      ? roundToOneDecimal(
+          Math.min(100, (input.areaSqFt / (installTiles * tileAreaSqFt)) * 100),
+        )
+      : 100;
+  const cutRatio = installTiles > 0 ? input.cutTiles / installTiles : 0;
+  const complexityScore = roundToOneDecimal(
+    cutRatio * 10 +
+      Math.min(input.obstacleCount * 1, 4) +
+      (input.garageDoorEnabled ? 1.5 : 0),
+  );
+  const recommendedWastePercent =
+    installTiles > 0
+      ? roundToOneDecimal(
+          Math.min(
+            input.wastePercent + 7,
+            input.wastePercent +
+              Math.min(cutRatio * 9, 3.5) +
+              Math.min(input.obstacleCount * 1, 4) +
+              (input.garageDoorEnabled ? 1.25 : 0),
+          ),
+        )
+      : 0;
+  const wasteReserveTiles =
+    installTiles > 0
+      ? Math.max(2, Math.ceil(installTiles * (recommendedWastePercent / 100)))
+      : 0;
+  const totalTiles = installTiles + wasteReserveTiles;
+  const tilesPerBox = Math.max(1, Math.floor(input.tilesPerBox ?? 1));
+  const boxesRequired =
+    totalTiles > 0 ? Math.max(1, Math.ceil(totalTiles / tilesPerBox)) : 0;
+  const boxCoverageSqFt = tileAreaSqFt * tilesPerBox;
+  const orderedTileCoverageSqFt = totalTiles * tileAreaSqFt;
+  const orderedBoxCoverageSqFt = boxesRequired * boxCoverageSqFt;
+  const coverageOverageSqFt = Math.max(
+    0,
+    roundToOneDecimal(orderedBoxCoverageSqFt - input.areaSqFt),
+  );
+  const boxOverageTiles =
+    boxesRequired > 0 ? boxesRequired * tilesPerBox - totalTiles : 0;
+
+  return {
+    baseWastePercent: input.wastePercent,
+    recommendedWastePercent,
+    wasteReserveTiles,
+    totalTiles,
+    tilesPerBox,
+    boxesRequired,
+    tileAreaSqFt: roundToThreeDecimals(tileAreaSqFt),
+    boxCoverageSqFt: roundToOneDecimal(boxCoverageSqFt),
+    orderedTileCoverageSqFt: roundToOneDecimal(orderedTileCoverageSqFt),
+    orderedBoxCoverageSqFt: roundToOneDecimal(orderedBoxCoverageSqFt),
+    coverageOverageSqFt,
+    boxOverageTiles,
+    layoutEfficiencyPercent,
+    complexityScore,
+    complexityLabel: getComplexityLabel(complexityScore),
+  };
+}
+
+function getComplexityLabel(score: number): string {
+  if (score >= 7.5) {
+    return "Tres technique";
+  }
+
+  if (score >= 5) {
+    return "Complexe";
+  }
+
+  if (score >= 2.5) {
+    return "Standard";
+  }
+
+  return "Simple";
+}
+
+function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function roundToThreeDecimals(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }

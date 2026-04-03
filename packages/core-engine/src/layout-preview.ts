@@ -83,6 +83,8 @@ export type RoomPreview = {
   shape: RoomShape;
   roomWidthIn: number;
   roomLengthIn: number;
+  tileWidthIn: number;
+  tileHeightIn: number;
   columns: number;
   rows: number;
   obstacles: PreviewObstacle[];
@@ -279,6 +281,8 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
     shape,
     roomWidthIn,
     roomLengthIn,
+    tileWidthIn: input.tileWidthIn,
+    tileHeightIn: input.tileHeightIn,
     columns,
     rows,
     obstacles,

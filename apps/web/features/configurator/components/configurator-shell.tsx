@@ -169,11 +169,6 @@ export function ConfiguratorShell({
     catalogProducts.find((product) => product.id === selectedProductId) ??
     catalogProducts[0];
   const paintedTileCount = Object.keys(paintedTileColors).length;
-  const boxCoverageSqFt =
-    (selectedProduct.tilesPerBox *
-      selectedProduct.tileWidthIn *
-      selectedProduct.tileHeightIn) /
-    144;
   const productSelectionOrder = [
     "crown-series",
     "crown-cubic",
@@ -271,11 +266,8 @@ export function ConfiguratorShell({
     pricePerTile: selectedProduct.pricePerTile,
     wastePercent: selectedProduct.wastePercent,
     includePerimeterBorders: layoutMode === "border",
+    tilesPerBox: selectedProduct.tilesPerBox,
   });
-  const boxesRequired = Math.max(
-    1,
-    Math.ceil(estimate.totalTiles / selectedProduct.tilesPerBox),
-  );
   const currentTemplate = projectTemplates.find((template) =>
     matchesTemplate({
       template,
@@ -297,6 +289,8 @@ export function ConfiguratorShell({
     obstaclesCount: obstacles.length,
     garageDoorEnabled,
     layoutMode,
+    complexityLabel: estimate.complexityLabel,
+    recommendedWastePercent: estimate.recommendedWastePercent,
   });
   const projectBrief = buildProjectBrief({
     roomWidth,
@@ -308,15 +302,23 @@ export function ConfiguratorShell({
     primaryColor,
     secondaryColor,
     estimateAreaSqFt: estimate.areaSqFt,
+    installTiles: estimate.installTiles,
+    cutTiles: estimate.cutTiles,
+    wasteReserveTiles: estimate.wasteReserveTiles,
     totalTiles: estimate.totalTiles,
-    boxesRequired,
+    boxesRequired: estimate.boxesRequired,
     estimateTotal: estimate.totalEstimate,
+    recommendedWastePercent: estimate.recommendedWastePercent,
+    complexityLabel: estimate.complexityLabel,
     garageDoorEnabled,
     garageDoorWidth,
     garageDoorOffset,
     obstaclesCount: obstacles.length,
   });
-  const packageCoverageText = `${(boxesRequired * boxCoverageSqFt).toFixed(1)} pi² de couverture theorique`;
+  const packageCoverageText =
+    estimate.boxesRequired > 0
+      ? `${estimate.boxesRequired} boites couvrent environ ${estimate.orderedBoxCoverageSqFt.toFixed(1)} pi², soit ${estimate.coverageOverageSqFt.toFixed(1)} pi² de marge theorique`
+      : "Aucune boite requise pour le moment";
   const tileFormatLabel = `${selectedProduct.tileWidthIn}" x ${selectedProduct.tileHeightIn}"`;
 
   const handleExportReady = useCallback((dataUrl: string) => {
@@ -456,12 +458,16 @@ export function ConfiguratorShell({
               <strong>{estimate.areaSqFt.toFixed(1)} pi²</strong>
             </div>
             <div className="workspace-package-metric">
-              <span>Total tuiles</span>
-              <strong>{estimate.totalTiles}</strong>
+              <span>Tuiles pose</span>
+              <strong>{estimate.installTiles}</strong>
+            </div>
+            <div className="workspace-package-metric">
+              <span>Reserve chantier</span>
+              <strong>{estimate.wasteReserveTiles}</strong>
             </div>
             <div className="workspace-package-metric">
               <span>Boites</span>
-              <strong>{boxesRequired}</strong>
+              <strong>{estimate.boxesRequired}</strong>
             </div>
             <div className="workspace-package-metric">
               <span>Budget estime</span>
@@ -469,7 +475,7 @@ export function ConfiguratorShell({
             </div>
           </div>
           <p className="muted-copy" style={{ margin: 0 }}>
-            {packageCoverageText}. Base ideale pour un brief, un export image ou une soumission rapide.
+            {packageCoverageText}. Commande calculee avec {estimate.recommendedWastePercent.toFixed(1)}% de reserve recommandee.
           </p>
         </article>
       </section>
@@ -739,7 +745,8 @@ export function ConfiguratorShell({
             <div className="paint-meta">
               <span className="tag">Gamme: {selectedProduct.name}</span>
               <span className="tag">Surface: {estimate.areaSqFt.toFixed(1)} pi²</span>
-              <span className="tag">Tuiles: {estimate.totalTiles}</span>
+              <span className="tag">Commande: {estimate.totalTiles} tuiles</span>
+              <span className="tag">Reserve: {estimate.wasteReserveTiles}</span>
               <span className="tag">Plan: {paintedTileCount}</span>
               <span className="tag">Estimatif: {formatCurrency(estimate.totalEstimate)}</span>
             </div>
@@ -986,28 +993,49 @@ export function ConfiguratorShell({
               <h2 className="summary-title">Résumé</h2>
               <div className="summary-grid">
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Pertes + coupes</span>
+                  <span className="summary-metric-label">Pose nette</span>
                   <strong className="summary-metric-value">
-                    {estimate.wasteTiles} tuiles
+                    {estimate.installTiles} tuiles
                   </strong>
                 </div>
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Edges porte</span>
+                  <span className="summary-metric-label">Coupes plan</span>
                   <strong className="summary-metric-value">
-                    {estimate.garageDoorEdgeTotalPieces} pcs
+                    {estimate.cutTiles} tuiles
+                  </strong>
+                </div>
+                <div className="summary-metric compact">
+                  <span className="summary-metric-label">Reserve chantier</span>
+                  <strong className="summary-metric-value">
+                    {estimate.wasteReserveTiles} tuiles
                   </strong>
                 </div>
                 <div className="summary-metric compact">
                   <span className="summary-metric-label">Boites a sortir</span>
-                  <strong className="summary-metric-value">{boxesRequired}</strong>
+                  <strong className="summary-metric-value">
+                    {estimate.boxesRequired}
+                  </strong>
                 </div>
                 <div className="summary-metric compact">
-                  <span className="summary-metric-label">Format de tuile</span>
-                  <strong className="summary-metric-value">{tileFormatLabel}</strong>
+                  <span className="summary-metric-label">Complexite</span>
+                  <strong className="summary-metric-value">
+                    {estimate.complexityLabel}
+                  </strong>
                 </div>
               </div>
               <p className="summary-note">
-                Offset porte :{" "}
+                Waste de base :{" "}
+                <strong>{estimate.baseWastePercent.toFixed(1)}%</strong>
+                {" "}| Waste recommande :{" "}
+                <strong>{estimate.recommendedWastePercent.toFixed(1)}%</strong>
+                {" "}| Rendement pose :{" "}
+                <strong>{estimate.layoutEfficiencyPercent.toFixed(1)}%</strong>
+                {" "}| Format : <strong>{tileFormatLabel}</strong>
+                {" "}| Edges porte :{" "}
+                <strong>{estimate.garageDoorEdgeTotalPieces} pcs</strong>
+                {" "}| Overage boite :{" "}
+                <strong>{estimate.boxOverageTiles} tuiles</strong>
+                {" "}| Offset porte :{" "}
                 <strong>
                   {fromInches(estimate.garageDoorOffsetIn, unit).toFixed(1)} {unit}
                 </strong>
@@ -1019,7 +1047,7 @@ export function ConfiguratorShell({
                 <strong>{estimate.garageDoorFrontTileCutsTotal}</strong>
                 {" "}| Hors pose :{" "}
                 <strong>{preview.excludedAreaSqFt.toFixed(1)} pi²</strong>
-                {" "}| Découpes : <strong>{obstacles.length}</strong>
+                {" "}| Decoupes : <strong>{obstacles.length}</strong>
                 {" "}| Bordure :{" "}
                 <strong>{estimate.borderLinearFeet.toFixed(1)} pi lin.</strong>
               </p>
@@ -1104,6 +1132,8 @@ function getProjectStory(input: {
   obstaclesCount: number;
   garageDoorEnabled: boolean;
   layoutMode: string;
+  complexityLabel: string;
+  recommendedWastePercent: number;
 }): string {
   const scaleStory =
     input.areaSqFt >= 600
@@ -1113,11 +1143,15 @@ function getProjectStory(input: {
         : "La surface reste compacte, donc le ratio impact visuel / budget est tres pilotable.";
 
   const complexityStory =
-    input.obstaclesCount > 0
-      ? `Il y a ${input.obstaclesCount} zone${input.obstaclesCount > 1 ? "s" : ""} a contourner, donc il faut privilegier une lecture nette et un plan qui reste facile a expliquer.`
-      : input.garageDoorEnabled
-        ? "La presence d'une ouverture de garage renforce l'interet d'une gamme lisible et d'un package edges propre."
-        : "Sans ouverture frontale, tu peux pousser plus fort le rendu design et la composition.";
+    input.complexityLabel === "Tres technique"
+      ? "Le plan demande une vraie lecture chantier, avec reserve et argumentaire bien cadres."
+      : input.complexityLabel === "Complexe"
+        ? "Le projet a assez de coupes pour justifier une commande plus encadree qu'un simple calcul surfacique."
+        : input.obstaclesCount > 0
+          ? `Il y a ${input.obstaclesCount} zone${input.obstaclesCount > 1 ? "s" : ""} a contourner, donc il faut privilegier une lecture nette et un plan qui reste facile a expliquer.`
+          : input.garageDoorEnabled
+            ? "La presence d'une ouverture de garage renforce l'interet d'une gamme lisible et d'un package edges propre."
+            : "Sans ouverture frontale, tu peux pousser plus fort le rendu design et la composition.";
 
   const patternStory =
     input.layoutMode === "border"
@@ -1128,7 +1162,7 @@ function getProjectStory(input: {
           ? "Le mode libre te permet deja de vendre une personnalisation plus exclusive."
           : "Le mode uni met davantage l'accent sur la matiere et la gamme que sur le motif.";
 
-  return `${input.product.positioningLabel}. ${scaleStory} ${complexityStory} ${patternStory}`;
+  return `${input.product.positioningLabel}. ${scaleStory} ${complexityStory} ${patternStory} Reserve recommandee: ${input.recommendedWastePercent.toFixed(1)}%.`;
 }
 
 function getLayoutLabel(layoutMode: string): string {
@@ -1156,9 +1190,14 @@ function buildProjectBrief(input: {
   primaryColor: string;
   secondaryColor: string;
   estimateAreaSqFt: number;
+  installTiles: number;
+  cutTiles: number;
+  wasteReserveTiles: number;
   totalTiles: number;
   boxesRequired: number;
   estimateTotal: number;
+  recommendedWastePercent: number;
+  complexityLabel: string;
   garageDoorEnabled: boolean;
   garageDoorWidth: number;
   garageDoorOffset: number;
@@ -1170,8 +1209,13 @@ function buildProjectBrief(input: {
     `Motif: ${getLayoutLabel(input.layoutMode)}`,
     `Palette: ${input.primaryColor}${input.secondaryColor ? ` / ${input.secondaryColor}` : ""}`,
     `Surface utile: ${input.estimateAreaSqFt.toFixed(1)} pi²`,
-    `Total tuiles: ${input.totalTiles}`,
+    `Pose nette: ${input.installTiles}`,
+    `Coupes plan: ${input.cutTiles}`,
+    `Reserve chantier: ${input.wasteReserveTiles}`,
+    `Commande totale: ${input.totalTiles}`,
     `Boites estimees: ${input.boxesRequired}`,
+    `Waste recommande: ${input.recommendedWastePercent.toFixed(1)}%`,
+    `Complexite: ${input.complexityLabel}`,
     `Budget estime: ${formatCurrency(input.estimateTotal)}`,
     input.garageDoorEnabled
       ? `Porte de garage: oui (${input.garageDoorWidth} ${input.unit}, offset ${input.garageDoorOffset} ${input.unit})`
