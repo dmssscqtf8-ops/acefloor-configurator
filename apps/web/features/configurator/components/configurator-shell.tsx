@@ -138,6 +138,7 @@ export function ConfiguratorShell({
   const garageDoorOffset = useConfiguratorStore((state) => state.garageDoorOffset);
   const unit = useConfiguratorStore((state) => state.unit);
   const obstacles = useConfiguratorStore((state) => state.obstacles);
+  const exteriorDoors = useConfiguratorStore((state) => state.exteriorDoors);
   const selectedProductId = useConfiguratorStore((state) => state.selectedProductId);
   const primaryColor = useConfiguratorStore((state) => state.primaryColor);
   const secondaryColor = useConfiguratorStore((state) => state.secondaryColor);
@@ -156,6 +157,9 @@ export function ConfiguratorShell({
   const clearObstacles = useConfiguratorStore((state) => state.clearObstacles);
   const removeObstacle = useConfiguratorStore((state) => state.removeObstacle);
   const updateObstacle = useConfiguratorStore((state) => state.updateObstacle);
+  const addExteriorDoor = useConfiguratorStore((state) => state.addExteriorDoor);
+  const removeExteriorDoor = useConfiguratorStore((state) => state.removeExteriorDoor);
+  const updateExteriorDoor = useConfiguratorStore((state) => state.updateExteriorDoor);
   const setSelectedProductId = useConfiguratorStore((state) => state.setSelectedProductId);
   const setPrimaryColor = useConfiguratorStore((state) => state.setPrimaryColor);
   const setSecondaryColor = useConfiguratorStore((state) => state.setSecondaryColor);
@@ -261,6 +265,7 @@ export function ConfiguratorShell({
     tileHeightIn: selectedProduct.tileHeightIn,
     pattern: layoutMode,
     obstacles,
+    exteriorDoors,
   });
 
   const estimate = computeEstimateFromPreview({
@@ -491,27 +496,23 @@ export function ConfiguratorShell({
             <section>
               <h2 className="section-title">Dimensions</h2>
               <div className="field-grid two-up">
-                <div className="field">
-                  <label htmlFor="room-width">Largeur</label>
-                  <input
-                    id="room-width"
-                    min={1}
-                    type="number"
-                    value={roomWidth}
-                    onChange={(event) => setRoomWidth(Number(event.target.value) || 0)}
-                  />
-                </div>
+                <DimensionField
+                  id="room-width"
+                  label="Largeur"
+                  unit={unit}
+                  value={roomWidth}
+                  min={1}
+                  onChange={setRoomWidth}
+                />
 
-                <div className="field">
-                  <label htmlFor="room-length">Longueur</label>
-                  <input
-                    id="room-length"
-                    min={1}
-                    type="number"
-                    value={roomLength}
-                    onChange={(event) => setRoomLength(Number(event.target.value) || 0)}
-                  />
-                </div>
+                <DimensionField
+                  id="room-length"
+                  label="Longueur"
+                  unit={unit}
+                  value={roomLength}
+                  min={1}
+                  onChange={setRoomLength}
+                />
               </div>
 
               <div className="field" style={{ marginTop: 14 }}>
@@ -590,6 +591,127 @@ export function ConfiguratorShell({
                   Aucun seuil appliqué au calcul.
                 </p>
               )}
+            </section>
+
+            <section>
+              <div className="inline-header">
+                <h2 className="section-title" style={{ margin: 0 }}>
+                  Portes additionnelles
+                </h2>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={addExteriorDoor}
+                >
+                  Ajouter
+                </button>
+              </div>
+              <div className="section-stack">
+                {exteriorDoors.length === 0 ? (
+                  <p className="muted-copy" style={{ margin: 0 }}>
+                    Ajoute une porte sur le mur gauche, droit ou au fond.
+                  </p>
+                ) : (
+                  exteriorDoors.map((door, index) => {
+                    const wallLimit =
+                      door.wall === "bottom" ? roomWidth : roomLength;
+
+                    return (
+                      <div key={door.id} className="step-item compact">
+                        <div className="inline-header">
+                          <strong>Porte {index + 1}</strong>
+                          <button
+                            type="button"
+                            className="button"
+                            onClick={() => removeExteriorDoor(door.id)}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+
+                        <div className="field-grid two-up">
+                          <div className="field">
+                            <label htmlFor={`door-kind-${door.id}`}>Type</label>
+                            <select
+                              id={`door-kind-${door.id}`}
+                              value={door.kind}
+                              onChange={(event) =>
+                                updateExteriorDoor(door.id, {
+                                  kind: event.target.value as "garage" | "man",
+                                })
+                              }
+                            >
+                              <option value="man">Porte d'homme</option>
+                              <option value="garage">Porte de garage</option>
+                            </select>
+                          </div>
+
+                          <div className="field">
+                            <label htmlFor={`door-wall-${door.id}`}>Mur</label>
+                            <select
+                              id={`door-wall-${door.id}`}
+                              value={door.wall}
+                              onChange={(event) =>
+                                updateExteriorDoor(door.id, {
+                                  wall: event.target.value as "left" | "right" | "bottom",
+                                })
+                              }
+                            >
+                              <option value="left">Gauche</option>
+                              <option value="right">Droite</option>
+                              <option value="bottom">Fond</option>
+                            </select>
+                          </div>
+
+                          <div className="field">
+                            <label htmlFor={`door-width-${door.id}`}>
+                              Largeur ({unit})
+                            </label>
+                            <input
+                              id={`door-width-${door.id}`}
+                              min={unit === "ft" ? 1 : 12}
+                              step={unit === "ft" ? 1 / 12 : 0.1}
+                              max={wallLimit}
+                              type="number"
+                              value={door.width}
+                              onChange={(event) =>
+                                updateExteriorDoor(door.id, {
+                                  width: Number(event.target.value) || 0,
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div className="field">
+                            <label htmlFor={`door-offset-${door.id}`}>
+                              Position depuis l'avant ({unit})
+                            </label>
+                            <input
+                              id={`door-offset-${door.id}`}
+                              min={0}
+                              step={unit === "ft" ? 1 / 12 : 0.1}
+                              max={Math.max(wallLimit - door.width, 0)}
+                              type="number"
+                              value={door.offset}
+                              onChange={(event) =>
+                                updateExteriorDoor(door.id, {
+                                  offset: Number(event.target.value) || 0,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <p className="muted-copy" style={{ margin: "10px 0 0" }}>
+                          {door.kind === "garage"
+                            ? "Une porte de garage cree un decrochement aligne aux tuiles pleines. Une bande de beton peut rester visible a peinturer."
+                            : "Une porte d'homme n'a pas besoin de edge devant l'ouverture."}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </section>
 
             <section>
@@ -794,6 +916,7 @@ export function ConfiguratorShell({
                 exportRequestId={exportRequestId}
                 clearMeasureRequestId={clearMeasureRequestId}
                 obstacles={obstacles}
+                exteriorDoors={exteriorDoors}
                 onPaintTile={(tileKey, color) => {
                   if (layoutMode !== "manual") {
                     setLayoutMode("manual");
@@ -1176,6 +1299,148 @@ function getLayoutLabel(layoutMode: string): string {
   }
 }
 
+type DimensionFieldProps = {
+  id: string;
+  label: string;
+  unit: "ft" | "in" | "cm" | "m";
+  value: number;
+  min?: number;
+  onChange: (value: number) => void;
+};
+
+function DimensionField(props: DimensionFieldProps) {
+  if (props.unit === "ft") {
+    const parts = splitFeetAndInches(props.value, props.min ?? 1);
+
+    return (
+      <div className="field field--dimension">
+        <label>{props.label}</label>
+        <div className="dimension-field">
+          <div className="dimension-field-summary">
+            {formatFeetAndInchesLabel(props.value, props.min ?? 1)}
+          </div>
+          <div className="dimension-stepper-grid">
+            <DimensionPartStepper
+              id={`${props.id}-feet`}
+              label="Pi"
+              value={parts.feet}
+              min={Math.max(Math.floor(props.min ?? 1), 0)}
+              onDecrement={() =>
+                props.onChange(adjustFeetAndInches(props.value, -12, props.min ?? 1))
+              }
+              onIncrement={() =>
+                props.onChange(adjustFeetAndInches(props.value, 12, props.min ?? 1))
+              }
+              onValueChange={(nextFeet) =>
+                props.onChange(updateFeetPart(props.value, nextFeet, props.min ?? 1))
+              }
+            />
+            <DimensionPartStepper
+              id={`${props.id}-inches`}
+              label="Po"
+              value={parts.inches}
+              min={0}
+              max={11}
+              onDecrement={() =>
+                props.onChange(adjustFeetAndInches(props.value, -1, props.min ?? 1))
+              }
+              onIncrement={() =>
+                props.onChange(adjustFeetAndInches(props.value, 1, props.min ?? 1))
+              }
+              onValueChange={(nextInches) =>
+                props.onChange(updateInchPart(props.value, nextInches, props.min ?? 1))
+              }
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const step = props.unit === "in" ? 1 : 0.1;
+
+  return (
+    <div className="field field--dimension">
+      <label htmlFor={props.id}>{props.label}</label>
+      <div className="dimension-stepper-single">
+        <button
+          type="button"
+          className="dimension-stepper-button"
+          aria-label={`Diminuer ${props.label}`}
+          onClick={() =>
+            props.onChange(Math.max(props.min ?? 0, roundToStep(props.value - step, step)))
+          }
+        >
+          -
+        </button>
+        <input
+          id={props.id}
+          min={props.min ?? 0}
+          step={step}
+          type="number"
+          value={props.value}
+          onChange={(event) => props.onChange(Number(event.target.value) || props.min || 0)}
+        />
+        <button
+          type="button"
+          className="dimension-stepper-button"
+          aria-label={`Augmenter ${props.label}`}
+          onClick={() => props.onChange(roundToStep(props.value + step, step))}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+type DimensionPartStepperProps = {
+  id: string;
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
+  onValueChange: (value: number) => void;
+};
+
+function DimensionPartStepper(props: DimensionPartStepperProps) {
+  return (
+    <div className="dimension-part-stepper">
+      <span className="dimension-part-label">{props.label}</span>
+      <div className="dimension-stepper-single">
+        <button
+          type="button"
+          className="dimension-stepper-button"
+          aria-label={`Diminuer ${props.label}`}
+          onClick={props.onDecrement}
+        >
+          -
+        </button>
+        <input
+          id={props.id}
+          min={props.min}
+          max={props.max}
+          step={1}
+          type="number"
+          inputMode="numeric"
+          value={props.value}
+          onChange={(event) => props.onValueChange(Number(event.target.value) || 0)}
+        />
+        <button
+          type="button"
+          className="dimension-stepper-button"
+          aria-label={`Augmenter ${props.label}`}
+          onClick={props.onIncrement}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function buildProjectBrief(input: {
   roomWidth: number;
   roomLength: number;
@@ -1202,7 +1467,7 @@ function buildProjectBrief(input: {
   obstaclesCount: number;
 }): string {
   return [
-    `Projet ${input.roomWidth} x ${input.roomLength} ${input.unit}`,
+    `Projet ${formatDimensionValue(input.roomWidth, input.unit)} x ${formatDimensionValue(input.roomLength, input.unit)}`,
     `Gamme: ${input.productName} (${input.productPositioning})`,
     `Motif: ${getLayoutLabel(input.layoutMode)}`,
     `Palette: ${input.primaryColor}${input.secondaryColor ? ` / ${input.secondaryColor}` : ""}`,
@@ -1223,6 +1488,67 @@ function buildProjectBrief(input: {
       : "Porte de garage: non",
     `Decoupes: ${input.obstaclesCount}`,
   ].join(" | ");
+}
+
+function splitFeetAndInches(value: number, minFeet = 1) {
+  const totalInches = Math.max(minFeet * 12, Math.round(value * 12));
+
+  return {
+    feet: Math.floor(totalInches / 12),
+    inches: totalInches % 12,
+  };
+}
+
+function adjustFeetAndInches(
+  value: number,
+  deltaInches: number,
+  minFeet = 1,
+): number {
+  const totalInches = Math.max(
+    minFeet * 12,
+    Math.round(value * 12) + deltaInches,
+  );
+
+  return totalInches / 12;
+}
+
+function updateFeetPart(value: number, nextFeet: number, minFeet = 1): number {
+  const current = splitFeetAndInches(value, minFeet);
+  const normalizedFeet = Math.max(Math.floor(nextFeet) || 0, 0);
+  const totalInches = Math.max(
+    minFeet * 12,
+    normalizedFeet * 12 + current.inches,
+  );
+
+  return totalInches / 12;
+}
+
+function updateInchPart(value: number, nextInches: number, minFeet = 1): number {
+  const current = splitFeetAndInches(value, minFeet);
+  const normalizedInches = Math.max(Math.floor(nextInches) || 0, 0);
+  const totalInches = Math.max(
+    minFeet * 12,
+    current.feet * 12 + normalizedInches,
+  );
+
+  return totalInches / 12;
+}
+
+function formatFeetAndInchesLabel(value: number, minFeet = 1): string {
+  const parts = splitFeetAndInches(value, minFeet);
+  return `${parts.feet} pi ${parts.inches} po`;
+}
+
+function formatDimensionValue(value: number, unit: string): string {
+  if (unit === "ft") {
+    return formatFeetAndInchesLabel(value, 1);
+  }
+
+  return `${value} ${unit}`;
+}
+
+function roundToStep(value: number, step: number): number {
+  return Math.round(value / step) * step;
 }
 
 type ToolIconName =

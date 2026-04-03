@@ -3,6 +3,7 @@
 import {
   buildRoomPreview,
   fromInches,
+  type ExteriorDoorInput,
   type LayoutPattern,
   type ObstacleInput,
   type RoomShape,
@@ -37,6 +38,7 @@ type RoomCanvasProps = {
   exportRequestId: number;
   clearMeasureRequestId: number;
   obstacles: ObstacleInput[];
+  exteriorDoors: ExteriorDoorInput[];
   onPaintTile: (tileKey: string, color: string) => void;
   onEraseTile: (tileKey: string) => void;
   onExportReady: (dataUrl: string) => void;
@@ -141,6 +143,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
     tileHeightIn: props.tileHeightIn,
     pattern: props.layoutMode,
     obstacles: props.obstacles,
+    exteriorDoors: props.exteriorDoors,
   });
 
   const paddingX = 42;
@@ -608,6 +611,45 @@ export function RoomCanvas(props: RoomCanvasProps) {
               </Group>
             ) : null}
 
+            {preview.exteriorDoors.map((door) => (
+              <Group key={door.id}>
+                <Rect
+                  x={offsetX + door.xIn * scale}
+                  y={offsetY + door.yIn * scale}
+                  width={Math.max(door.widthIn * scale, 6)}
+                  height={Math.max(door.heightIn * scale, 6)}
+                  fill={
+                    door.kind === "garage"
+                      ? "rgba(241, 204, 114, 0.14)"
+                      : "rgba(126, 208, 255, 0.14)"
+                  }
+                  stroke={
+                    door.kind === "garage"
+                      ? "rgba(241, 204, 114, 0.95)"
+                      : "rgba(126, 208, 255, 0.95)"
+                  }
+                  strokeWidth={1.5}
+                  dash={door.kind === "garage" ? [10, 6] : [6, 6]}
+                  cornerRadius={10}
+                />
+                <Text
+                  x={offsetX + door.xIn * scale + 8}
+                  y={offsetY + door.yIn * scale + 8}
+                  text={
+                    door.kind === "garage"
+                      ? `Porte garage • ${door.totalEdgePieces} edges`
+                      : "Porte d'homme"
+                  }
+                  fill={
+                    door.kind === "garage"
+                      ? "#f1d28d"
+                      : "rgba(126, 208, 255, 0.96)"
+                  }
+                  fontSize={12}
+                />
+              </Group>
+            ))}
+
             <Line
               points={footprintPointsPx}
               closed
@@ -672,7 +714,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
                 y={-18}
                 width={108}
                 align="center"
-                text={`${props.roomWidth} ${props.unit}`}
+                text={formatCanvasDimension(props.roomWidth, props.unit)}
                 fill="rgba(244,245,247,0.82)"
                 fontSize={13}
               />
@@ -690,7 +732,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
                 rotation={-90}
                 width={90}
                 align="center"
-                text={`${props.roomLength} ${props.unit}`}
+                text={formatCanvasDimension(props.roomLength, props.unit)}
                 fill="rgba(244,245,247,0.82)"
                 fontSize={13}
               />
@@ -722,15 +764,39 @@ export function RoomCanvas(props: RoomCanvasProps) {
                   fontSize={12}
                 />
               ) : null}
+              {preview.exteriorDoors.length > 0 ? (
+                <Text
+                  y={
+                    preview.garageDoor.enabled
+                      ? preview.cutout.areaSqFt > 0
+                        ? 54
+                        : 36
+                      : preview.cutout.areaSqFt > 0
+                        ? 36
+                        : 18
+                  }
+                  text={`Portes additionnelles • ${preview.exteriorDoors.length}`}
+                  fill="rgba(126, 208, 255, 0.9)"
+                  fontSize={12}
+                />
+              ) : null}
               <Text
                 y={
-                  preview.garageDoor.enabled
-                    ? preview.cutout.areaSqFt > 0
-                      ? 54
-                      : 36
-                    : preview.cutout.areaSqFt > 0
-                      ? 36
-                      : 18
+                  preview.exteriorDoors.length > 0
+                    ? preview.garageDoor.enabled
+                      ? preview.cutout.areaSqFt > 0
+                        ? 72
+                        : 54
+                      : preview.cutout.areaSqFt > 0
+                        ? 54
+                        : 36
+                    : preview.garageDoor.enabled
+                      ? preview.cutout.areaSqFt > 0
+                        ? 54
+                        : 36
+                      : preview.cutout.areaSqFt > 0
+                        ? 36
+                        : 18
                 }
                 text={`Outil • ${
                   props.interactionMode === "measure"
@@ -830,6 +896,18 @@ function clamp(value: number, min: number, max: number): number {
 
 function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function formatCanvasDimension(value: number, unit: Unit): string {
+  if (unit !== "ft") {
+    return `${roundToTenth(value)} ${unit}`;
+  }
+
+  const totalInches = Math.max(0, Math.round(value * 12));
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+
+  return `${feet} pi ${inches} po`;
 }
 
 function getTileKey(row: number, column: number): string {

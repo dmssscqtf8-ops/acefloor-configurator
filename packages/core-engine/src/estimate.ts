@@ -145,6 +145,9 @@ export function computeEstimateFromPreview(input: {
   includePerimeterBorders?: boolean;
   tilesPerBox?: number;
 }): RectangleEstimate {
+  const additionalGarageDoorEdgePieces = input.preview.exteriorDoors
+    .filter((door) => door.kind === "garage")
+    .reduce((total, door) => total + door.totalEdgePieces, 0);
   const activeCells = input.preview.cells.filter((cell) => !cell.fullyExcluded);
   const fullTiles = activeCells.filter((cell) => !cell.isCut).length;
   const cutTiles = activeCells.filter((cell) => cell.isCut).length;
@@ -195,9 +198,11 @@ export function computeEstimateFromPreview(input: {
     complexityScore: commercialMetrics.complexityScore,
     complexityLabel: commercialMetrics.complexityLabel,
     borderLinearFeet,
-    garageDoorEdgeFullPieces: input.preview.garageDoor.fullEdgePieces,
+    garageDoorEdgeFullPieces:
+      input.preview.garageDoor.fullEdgePieces + additionalGarageDoorEdgePieces,
     garageDoorEdgeCutPieces: input.preview.garageDoor.cutEdgePieces,
-    garageDoorEdgeTotalPieces: input.preview.garageDoor.totalEdgePieces,
+    garageDoorEdgeTotalPieces:
+      input.preview.garageDoor.totalEdgePieces + additionalGarageDoorEdgePieces,
     garageDoorOffsetIn: input.preview.garageDoor.offsetFromLeftIn,
     garageDoorLeftTileCuts: input.preview.garageDoor.leftTileCutPieces,
     garageDoorRightTileCuts: input.preview.garageDoor.rightTileCutPieces,

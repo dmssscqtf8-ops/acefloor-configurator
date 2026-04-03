@@ -12,12 +12,43 @@ export type ObstacleInput = {
   height: number;
 };
 
+export type ExteriorDoorKind = "garage" | "man";
+export type ExteriorDoorWall = "left" | "right" | "bottom";
+export type ExteriorDoorInput = {
+  id: string;
+  kind: ExteriorDoorKind;
+  wall: ExteriorDoorWall;
+  width: number;
+  offset: number;
+};
+
 export type PreviewObstacle = {
   id: string;
   xIn: number;
   yIn: number;
   widthIn: number;
   heightIn: number;
+};
+
+export type PreviewExteriorDoor = {
+  id: string;
+  kind: ExteriorDoorKind;
+  wall: ExteriorDoorWall;
+  openingWidthIn: number;
+  offsetFromOriginIn: number;
+  xIn: number;
+  yIn: number;
+  widthIn: number;
+  heightIn: number;
+  setbackDepthIn: number;
+  alignedStartIn: number;
+  alignedEndIn: number;
+  alignedSpanIn: number;
+  fullEdgePieces: number;
+  cutEdgePieces: number;
+  totalEdgePieces: number;
+  concreteGapAreaSqFt: number;
+  excludedAreaSqFt: number;
 };
 
 export type PreviewCutout = {
@@ -77,6 +108,7 @@ export type RoomPreviewInput = {
   garageDoorWidth?: number;
   garageDoorOffset?: number;
   obstacles?: ObstacleInput[];
+  exteriorDoors?: ExteriorDoorInput[];
 };
 
 export type RoomPreview = {
@@ -88,6 +120,7 @@ export type RoomPreview = {
   columns: number;
   rows: number;
   obstacles: PreviewObstacle[];
+  exteriorDoors: PreviewExteriorDoor[];
   cells: PreviewCell[];
   cutout: PreviewCutout;
   garageDoor: PreviewGarageDoor;
@@ -132,6 +165,15 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
     roomWidthIn,
     input.tileWidthIn,
   );
+  const exteriorDoors = normalizeExteriorDoors(
+    input.exteriorDoors ?? [],
+    input.unit,
+    roomWidthIn,
+    roomLengthIn,
+    input.tileWidthIn,
+    input.tileHeightIn,
+    garageDoor.setbackDepthIn,
+  );
   const obstacles = normalizeObstacles(
     input.obstacles ?? [],
     input.unit,
@@ -170,6 +212,14 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
           },
         ]
       : []),
+    ...exteriorDoors
+      .filter((door) => door.kind === "garage" && door.excludedAreaSqFt > 0)
+      .map((door) => ({
+        xIn: door.xIn,
+        yIn: door.yIn,
+        widthIn: door.widthIn,
+        heightIn: door.heightIn,
+      })),
     ...obstacles,
   ];
 
@@ -286,6 +336,7 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
     columns,
     rows,
     obstacles,
+    exteriorDoors,
     cells,
     cutout,
     garageDoor,
@@ -411,6 +462,200 @@ function normalizeGarageDoor(
     sideTileCutsPerSide: Math.max(leftTileCutPieces, rightTileCutPieces),
     tileCoverageAreaSqFt: (openingWidthIn * setbackDepthIn) / 144,
   };
+}
+
+function normalizeExteriorDoors(
+  doors: ExteriorDoorInput[],
+  unit: Unit,
+  roomWidthIn: number,
+  roomLengthIn: number,
+  tileWidthIn: number,
+  tileHeightIn: number,
+  frontGarageSetbackIn: number,
+): PreviewExteriorDoor[] {
+  const setbackDepthIn = 4.5;
+  const edgeWidthIn = 15.75;
+
+  return doors
+    .map((door) => {
+      const spanLimitIn = door.wall === "bottom" ? roomWidthIn : roomLengthIn;
+      const openingWidthIn = clamp(
+        toInches(Math.max(door.width, 0), unit),
+        0,
+        spanLimitIn,
+      );
+
+      if (openingWidthIn <= 0.001) {
+        return null;
+      }
+
+      const offsetFromOriginIn = clamp(
+        toInches(Math.max(door.offset, 0), unit),
+        0,
+        Math.max(spanLimitIn - openingWidthIn, 0),
+      );
+
+      if (door.kind === "man") {
+        return buildPreviewManDoor({
+          door,
+          openingWidthIn,
+          offsetFromOriginIn,
+          roomWidthIn,
+          roomLengthIn,
+        });
+      }
+
+      return buildPreviewGarageSideDoor({
+        door,
+        openingWidthIn,
+        offsetFromOriginIn,
+        roomWidthIn,
+        roomLengthIn,
+        tileWidthIn,
+        tileHeightIn,
+        frontGarageSetbackIn,
+        setbackDepthIn,
+        edgeWidthIn,
+      });
+    })
+    .filter((door): door is PreviewExteriorDoor => door !== null);
+}
+
+function buildPreviewManDoor(input: {
+  door: ExteriorDoorInput;
+  openingWidthIn: number;
+  offsetFromOriginIn: number;
+  roomWidthIn: number;
+  roomLengthIn: number;
+}): PreviewExteriorDoor {
+  const visualDepthIn = 2;
+  const { xIn, yIn, widthIn, heightIn } = getDoorWallRect({
+    wall: input.door.wall,
+    startIn: input.offsetFromOriginIn,
+    spanIn: input.openingWidthIn,
+    roomWidthIn: input.roomWidthIn,
+    roomLengthIn: input.roomLengthIn,
+    depthIn: visualDepthIn,
+  });
+
+  return {
+    id: input.door.id,
+    kind: "man",
+    wall: input.door.wall,
+    openingWidthIn: input.openingWidthIn,
+    offsetFromOriginIn: input.offsetFromOriginIn,
+    xIn,
+    yIn,
+    widthIn,
+    heightIn,
+    setbackDepthIn: 0,
+    alignedStartIn: input.offsetFromOriginIn,
+    alignedEndIn: input.offsetFromOriginIn + input.openingWidthIn,
+    alignedSpanIn: input.openingWidthIn,
+    fullEdgePieces: 0,
+    cutEdgePieces: 0,
+    totalEdgePieces: 0,
+    concreteGapAreaSqFt: 0,
+    excludedAreaSqFt: 0,
+  };
+}
+
+function buildPreviewGarageSideDoor(input: {
+  door: ExteriorDoorInput;
+  openingWidthIn: number;
+  offsetFromOriginIn: number;
+  roomWidthIn: number;
+  roomLengthIn: number;
+  tileWidthIn: number;
+  tileHeightIn: number;
+  frontGarageSetbackIn: number;
+  setbackDepthIn: number;
+  edgeWidthIn: number;
+}): PreviewExteriorDoor {
+  const axisStepIn = input.door.wall === "bottom" ? input.tileWidthIn : input.tileHeightIn;
+  const axisLimitIn = input.door.wall === "bottom" ? input.roomWidthIn : input.roomLengthIn;
+  const snapOriginIn =
+    input.door.wall === "bottom" ? 0 : Math.max(input.frontGarageSetbackIn, 0);
+  const alignedStartIn = snapDownToGrid(
+    input.offsetFromOriginIn,
+    axisStepIn,
+    snapOriginIn,
+  );
+  const alignedEndIn = snapUpToGrid(
+    input.offsetFromOriginIn + input.openingWidthIn,
+    axisStepIn,
+    axisLimitIn,
+    snapOriginIn,
+  );
+  const alignedSpanIn = Math.max(alignedEndIn - alignedStartIn, 0);
+  const { xIn, yIn, widthIn, heightIn } = getDoorWallRect({
+    wall: input.door.wall,
+    startIn: alignedStartIn,
+    spanIn: alignedSpanIn,
+    roomWidthIn: input.roomWidthIn,
+    roomLengthIn: input.roomLengthIn,
+    depthIn: input.setbackDepthIn,
+  });
+  const totalEdgePieces =
+    alignedSpanIn > 0 ? Math.ceil(alignedSpanIn / input.edgeWidthIn) : 0;
+
+  return {
+    id: input.door.id,
+    kind: "garage",
+    wall: input.door.wall,
+    openingWidthIn: input.openingWidthIn,
+    offsetFromOriginIn: input.offsetFromOriginIn,
+    xIn,
+    yIn,
+    widthIn,
+    heightIn,
+    setbackDepthIn: input.setbackDepthIn,
+    alignedStartIn,
+    alignedEndIn,
+    alignedSpanIn,
+    fullEdgePieces: totalEdgePieces,
+    cutEdgePieces: 0,
+    totalEdgePieces,
+    concreteGapAreaSqFt: Math.max(
+      0,
+      ((alignedSpanIn - input.openingWidthIn) * input.setbackDepthIn) / 144,
+    ),
+    excludedAreaSqFt: (widthIn * heightIn) / 144,
+  };
+}
+
+function getDoorWallRect(input: {
+  wall: ExteriorDoorWall;
+  startIn: number;
+  spanIn: number;
+  roomWidthIn: number;
+  roomLengthIn: number;
+  depthIn: number;
+}) {
+  switch (input.wall) {
+    case "left":
+      return {
+        xIn: 0,
+        yIn: input.startIn,
+        widthIn: input.depthIn,
+        heightIn: input.spanIn,
+      };
+    case "right":
+      return {
+        xIn: Math.max(input.roomWidthIn - input.depthIn, 0),
+        yIn: input.startIn,
+        widthIn: input.depthIn,
+        heightIn: input.spanIn,
+      };
+    case "bottom":
+    default:
+      return {
+        xIn: input.startIn,
+        yIn: Math.max(input.roomLengthIn - input.depthIn, 0),
+        widthIn: input.spanIn,
+        heightIn: input.depthIn,
+      };
+  }
 }
 
 function pushPreviewCell(input: {
@@ -700,6 +945,29 @@ function containsPoint(rectangle: ExclusionRect, x: number, y: number): boolean 
 
 function uniqueSorted(values: number[]): number[] {
   return [...new Set(values)].sort((left, right) => left - right);
+}
+
+function snapDownToGrid(value: number, step: number, origin = 0): number {
+  if (step <= 0) {
+    return value;
+  }
+
+  const normalized = value - origin;
+  return Math.max(origin, origin + Math.floor(normalized / step) * step);
+}
+
+function snapUpToGrid(
+  value: number,
+  step: number,
+  max: number,
+  origin = 0,
+): number {
+  if (step <= 0) {
+    return clamp(value, origin, max);
+  }
+
+  const normalized = value - origin;
+  return clamp(origin + Math.ceil(normalized / step) * step, origin, max);
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -5,12 +5,21 @@ import { create } from "zustand";
 
 export type Unit = "ft" | "in" | "cm" | "m";
 export type PaintTool = "paint" | "erase";
+export type ExteriorDoorKind = "garage" | "man";
+export type ExteriorDoorWall = "left" | "right" | "bottom";
 export type Obstacle = {
   id: string;
   x: number;
   y: number;
   width: number;
   height: number;
+};
+export type ExteriorDoor = {
+  id: string;
+  kind: ExteriorDoorKind;
+  wall: ExteriorDoorWall;
+  width: number;
+  offset: number;
 };
 
 type ConfiguratorState = {
@@ -24,6 +33,7 @@ type ConfiguratorState = {
   garageDoorOffset: number;
   unit: Unit;
   obstacles: Obstacle[];
+  exteriorDoors: ExteriorDoor[];
   selectedProductId: string;
   primaryColor: string;
   secondaryColor: string;
@@ -57,6 +67,12 @@ type ConfiguratorState = {
     id: string,
     patch: Partial<Omit<Obstacle, "id">>,
   ) => void;
+  addExteriorDoor: () => void;
+  removeExteriorDoor: (id: string) => void;
+  updateExteriorDoor: (
+    id: string,
+    patch: Partial<Omit<ExteriorDoor, "id">>,
+  ) => void;
 };
 
 export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
@@ -70,6 +86,7 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
   garageDoorOffset: 4,
   unit: "ft",
   obstacles: [],
+  exteriorDoors: [],
   selectedProductId: "crown-series",
   primaryColor: "Noir",
   secondaryColor: "Charcoal",
@@ -207,13 +224,46 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
         };
       }),
     })),
+  addExteriorDoor: () => {
+    const state = get();
+    const door: ExteriorDoor = {
+      id: globalThis.crypto?.randomUUID?.() ?? `door-${Date.now()}`,
+      kind: "man",
+      wall: "left",
+      width: state.unit === "ft" ? 3 : 36,
+      offset: state.unit === "ft" ? 4 : 48,
+    };
+
+    set({ exteriorDoors: [...state.exteriorDoors, door] });
+  },
+  removeExteriorDoor: (id) =>
+    set((state) => ({
+      exteriorDoors: state.exteriorDoors.filter((door) => door.id !== id),
+    })),
+  updateExteriorDoor: (id, patch) =>
+    set((state) => ({
+      exteriorDoors: state.exteriorDoors.map((door) =>
+        door.id === id
+          ? {
+              ...door,
+              ...patch,
+              width:
+                patch.width === undefined
+                  ? door.width
+                  : Math.max(patch.width, state.unit === "ft" ? 1 : 12),
+              offset:
+                patch.offset === undefined ? door.offset : Math.max(patch.offset, 0),
+            }
+          : door,
+      ),
+    })),
 }));
 
 function normalizeRoomGeometry(
   state: Pick<
     ConfiguratorState,
     "roomWidth" | "roomLength" | "cutoutWidth" | "cutoutLength"
-    | "garageDoorWidth" | "garageDoorOffset"
+    | "garageDoorWidth" | "garageDoorOffset" | "unit"
   >,
 ): Pick<
   ConfiguratorState,
@@ -224,11 +274,15 @@ function normalizeRoomGeometry(
   | "garageDoorWidth"
   | "garageDoorOffset"
 > {
-  const roomWidth = Math.max(roundToTenth(state.roomWidth), 1);
-  const roomLength = Math.max(roundToTenth(state.roomLength), 1);
-  const garageDoorWidth = clamp(roundToTenth(state.garageDoorWidth), 0, roomWidth);
+  const roomWidth = Math.max(roundByUnit(state.roomWidth, state.unit), 1);
+  const roomLength = Math.max(roundByUnit(state.roomLength, state.unit), 1);
+  const garageDoorWidth = clamp(
+    roundByUnit(state.garageDoorWidth, state.unit),
+    0,
+    roomWidth,
+  );
   const garageDoorOffset = clamp(
-    roundToTenth(state.garageDoorOffset),
+    roundByUnit(state.garageDoorOffset, state.unit),
     0,
     Math.max(roomWidth - garageDoorWidth, 0),
   );
@@ -236,9 +290,13 @@ function normalizeRoomGeometry(
   return {
     roomWidth,
     roomLength,
-    cutoutWidth: clamp(roundToTenth(state.cutoutWidth), 0, Math.max(roomWidth - 1, 0)),
+    cutoutWidth: clamp(
+      roundByUnit(state.cutoutWidth, state.unit),
+      0,
+      Math.max(roomWidth - 1, 0),
+    ),
     cutoutLength: clamp(
-      roundToTenth(state.cutoutLength),
+      roundByUnit(state.cutoutLength, state.unit),
       0,
       Math.max(roomLength - 1, 0),
     ),
@@ -249,6 +307,14 @@ function normalizeRoomGeometry(
 
 function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function roundByUnit(value: number, unit: Unit): number {
+  if (unit === "ft") {
+    return Math.round(value * 12) / 12;
+  }
+
+  return roundToTenth(value);
 }
 
 function clamp(value: number, min: number, max: number): number {
