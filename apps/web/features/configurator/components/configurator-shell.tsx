@@ -1235,12 +1235,7 @@ export function ConfiguratorShell({
                 clearMeasureRequestId={clearMeasureRequestId}
                 obstacles={obstacles}
                 exteriorDoors={exteriorDoors}
-                onPaintTile={(tileKey, color) => {
-                  if (layoutMode !== "manual") {
-                    setLayoutMode("manual");
-                  }
-                  paintTile(tileKey, color);
-                }}
+                onPaintTile={paintTile}
                 onEraseTile={eraseTile}
                 onExportReady={handleExportReady}
                 onGarageDoorOffsetChange={setGarageDoorOffset}
