@@ -103,6 +103,12 @@ export function ConfiguratorShell({
     "crown-grip",
     "acetrax",
   ] as const;
+  const unitOptions = [
+    { value: "ft", label: "Pi / po" },
+    { value: "in", label: "Pouces" },
+    { value: "cm", label: "CM" },
+    { value: "m", label: "M" },
+  ] as const;
   const orderedProducts = productSelectionOrder
     .map((id) => catalogProducts.find((product) => product.id === id))
     .filter((product): product is (typeof catalogProducts)[number] => Boolean(product));
@@ -265,6 +271,26 @@ export function ConfiguratorShell({
     link.click();
   }, [selectedProduct.id]);
 
+  const handleProductSelection = useCallback((productId: string) => {
+    const product = orderedProducts.find((entry) => entry.id === productId);
+
+    if (!product) return;
+
+    const firstColor = product.availableColors[0] ?? "Noir";
+    const secondColor = product.availableColors[1] ?? firstColor;
+
+    setSelectedProductId(product.id);
+    setPrimaryColor(firstColor);
+    setSecondaryColor(secondColor);
+    setActivePaintColor(firstColor);
+  }, [
+    orderedProducts,
+    setActivePaintColor,
+    setPrimaryColor,
+    setSecondaryColor,
+    setSelectedProductId,
+  ]);
+
   const handleCopyProjectBrief = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(projectBrief);
@@ -276,44 +302,46 @@ export function ConfiguratorShell({
 
   const controlsPanelContent = (
     <div className="section-stack">
-      <section>
-        <h2 className="section-title">Dimensions</h2>
-        <div className="field-grid two-up field-grid--dimensions">
-          <DimensionField
-            id="room-width"
-            label="Largeur"
-            unit={unit}
-            value={roomWidth}
-            min={1}
-            onChange={setRoomWidth}
-          />
+      {!isMobileLayout ? (
+        <section>
+          <h2 className="section-title">Dimensions</h2>
+          <div className="field-grid two-up field-grid--dimensions">
+            <DimensionField
+              id="room-width"
+              label="Largeur"
+              unit={unit}
+              value={roomWidth}
+              min={1}
+              onChange={setRoomWidth}
+            />
 
-          <DimensionField
-            id="room-length"
-            label="Longueur"
-            unit={unit}
-            value={roomLength}
-            min={1}
-            onChange={setRoomLength}
-          />
-        </div>
+            <DimensionField
+              id="room-length"
+              label="Longueur"
+              unit={unit}
+              value={roomLength}
+              min={1}
+              onChange={setRoomLength}
+            />
+          </div>
 
-        <div className="field" style={{ marginTop: 14 }}>
-          <label htmlFor="room-unit">Unité</label>
-          <select
-            id="room-unit"
-            value={unit}
-            onChange={(event) =>
-              setUnit(event.target.value as "ft" | "in" | "cm" | "m")
-            }
-          >
-            <option value="ft">Pieds</option>
-            <option value="in">Pouces</option>
-            <option value="cm">Centimètres</option>
-            <option value="m">Mètres</option>
-          </select>
-        </div>
-      </section>
+          <div className="field" style={{ marginTop: 14 }}>
+            <label htmlFor="room-unit">Unité</label>
+            <select
+              id="room-unit"
+              value={unit}
+              onChange={(event) =>
+                setUnit(event.target.value as "ft" | "in" | "cm" | "m")
+              }
+            >
+              <option value="ft">Pieds</option>
+              <option value="in">Pouces</option>
+              <option value="cm">Centimètres</option>
+              <option value="m">Mètres</option>
+            </select>
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <h2 className="section-title">Seuil & edges</h2>
@@ -772,33 +800,27 @@ export function ConfiguratorShell({
 
   const catalogPanelContent = (
     <div className="section-stack">
-      <section>
-        <h2 className="section-title">Gamme</h2>
-        <div className="catalog-list catalog-list--simple">
-          {orderedProducts.map((product, index) => (
-            <button
-              key={product.id}
-              type="button"
-              className={`catalog-choice${
-                product.id === selectedProductId ? " active" : ""
-              }`}
-              onClick={() => {
-                const firstColor = product.availableColors[0] ?? "Noir";
-                const secondColor = product.availableColors[1] ?? firstColor;
-
-                setSelectedProductId(product.id);
-                setPrimaryColor(firstColor);
-                setSecondaryColor(secondColor);
-                setActivePaintColor(firstColor);
-              }}
-            >
-              <span className="catalog-choice-index">{index + 1}.</span>
-              <span className="catalog-choice-name">{product.name}</span>
-              <span className="catalog-choice-meta">{product.tileWeightGrams} g</span>
-            </button>
-          ))}
-        </div>
-      </section>
+      {!isMobileLayout ? (
+        <section>
+          <h2 className="section-title">Gamme</h2>
+          <div className="catalog-list catalog-list--simple">
+            {orderedProducts.map((product, index) => (
+              <button
+                key={product.id}
+                type="button"
+                className={`catalog-choice${
+                  product.id === selectedProductId ? " active" : ""
+                }`}
+                onClick={() => handleProductSelection(product.id)}
+              >
+                <span className="catalog-choice-index">{index + 1}.</span>
+                <span className="catalog-choice-name">{product.name}</span>
+                <span className="catalog-choice-meta">{product.tileWeightGrams} g</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="summary-panel summary-panel--compact">
         <h2 className="summary-title">Details chantier</h2>
@@ -952,8 +974,73 @@ export function ConfiguratorShell({
           <div className="paint-workbench">
             <div className="workspace-card-head workspace-card-head--tight">
               <span className="workspace-card-kicker">Palette</span>
-              <strong>Dessin libre et presets</strong>
+              <strong>
+                {isMobileLayout ? "Palette, gamme et dimensions" : "Dessin libre et presets"}
+              </strong>
             </div>
+
+            {isMobileLayout ? (
+              <div className="mobile-workbench-stack">
+                <section className="mobile-workbench-card">
+                  <div className="mobile-workbench-head">
+                    <span className="workspace-card-kicker">Tuile</span>
+                    <strong>{selectedProduct.name}</strong>
+                  </div>
+                  <div className="mobile-product-grid">
+                    {orderedProducts.map((product) => (
+                      <button
+                        key={`mobile-product-${product.id}`}
+                        type="button"
+                        className={`mobile-product-pill${
+                          product.id === selectedProductId ? " active" : ""
+                        }`}
+                        onClick={() => handleProductSelection(product.id)}
+                      >
+                        <span>{product.name}</span>
+                        <small>{product.tileWeightGrams} g</small>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="mobile-workbench-card">
+                  <div className="mobile-workbench-head">
+                    <span className="workspace-card-kicker">Garage</span>
+                    <strong>{formatDimensionValue(roomWidth, unit)} x {formatDimensionValue(roomLength, unit)}</strong>
+                  </div>
+                  <div className="mobile-unit-strip" role="group" aria-label="Unite">
+                    {unitOptions.map((option) => (
+                      <button
+                        key={`mobile-unit-${option.value}`}
+                        type="button"
+                        className={`mobile-unit-pill${unit === option.value ? " active" : ""}`}
+                        onClick={() => setUnit(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mobile-dimension-grid">
+                    <CompactDimensionField
+                      id="mobile-room-width"
+                      label="Largeur"
+                      unit={unit}
+                      value={roomWidth}
+                      min={1}
+                      onChange={setRoomWidth}
+                    />
+                    <CompactDimensionField
+                      id="mobile-room-length"
+                      label="Longueur"
+                      unit={unit}
+                      value={roomLength}
+                      min={1}
+                      onChange={setRoomLength}
+                    />
+                  </div>
+                </section>
+              </div>
+            ) : null}
 
             <div className="preset-strip">
               {presets.map((preset) => (
@@ -1046,7 +1133,7 @@ export function ConfiguratorShell({
           <aside className="catalog-panel catalog-panel--sticky workspace-panel workspace-panel--catalog">
             {isMobileLayout ? (
               <WorkspaceFold
-                title="Produit & soumission"
+                title="Soumission & details"
                 subtitle={commercialSummary}
               >
                 {catalogPanelContent}
@@ -1201,6 +1288,95 @@ function DimensionField(props: DimensionFieldProps) {
   );
 }
 
+function CompactDimensionField(props: DimensionFieldProps) {
+  if (props.unit === "ft") {
+    const parts = splitFeetAndInches(props.value, props.min ?? 1);
+
+    return (
+      <div className="compact-dimension-card">
+        <div className="compact-dimension-head">
+          <span>{props.label}</span>
+          <strong>{formatFeetAndInchesLabel(props.value, props.min ?? 1)}</strong>
+        </div>
+        <div className="compact-dimension-parts">
+          <CompactDimensionPartStepper
+            id={`${props.id}-feet`}
+            label="Pi"
+            value={parts.feet}
+            min={Math.max(Math.floor(props.min ?? 1), 0)}
+            onDecrement={() =>
+              props.onChange(adjustFeetAndInches(props.value, -12, props.min ?? 1))
+            }
+            onIncrement={() =>
+              props.onChange(adjustFeetAndInches(props.value, 12, props.min ?? 1))
+            }
+            onValueChange={(nextFeet) =>
+              props.onChange(updateFeetPart(props.value, nextFeet, props.min ?? 1))
+            }
+          />
+          <CompactDimensionPartStepper
+            id={`${props.id}-inches`}
+            label="Po"
+            value={parts.inches}
+            min={0}
+            max={11}
+            onDecrement={() =>
+              props.onChange(adjustFeetAndInches(props.value, -1, props.min ?? 1))
+            }
+            onIncrement={() =>
+              props.onChange(adjustFeetAndInches(props.value, 1, props.min ?? 1))
+            }
+            onValueChange={(nextInches) =>
+              props.onChange(updateInchPart(props.value, nextInches, props.min ?? 1))
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const step = props.unit === "in" ? 1 : 0.1;
+
+  return (
+    <div className="compact-dimension-card">
+      <div className="compact-dimension-head">
+        <span>{props.label}</span>
+        <strong>{formatDimensionValue(props.value, props.unit)}</strong>
+      </div>
+      <div className="compact-dimension-single">
+        <button
+          type="button"
+          className="compact-stepper-button"
+          aria-label={`Diminuer ${props.label}`}
+          onClick={() =>
+            props.onChange(Math.max(props.min ?? 0, roundToStep(props.value - step, step)))
+          }
+        >
+          -
+        </button>
+        <input
+          id={props.id}
+          min={props.min ?? 0}
+          step={step}
+          type="number"
+          value={props.value}
+          onChange={(event) =>
+            props.onChange(Number(event.target.value) || props.min || 0)
+          }
+        />
+        <button
+          type="button"
+          className="compact-stepper-button"
+          aria-label={`Augmenter ${props.label}`}
+          onClick={() => props.onChange(roundToStep(props.value + step, step))}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type DimensionPartStepperProps = {
   id: string;
   label: string;
@@ -1238,6 +1414,42 @@ function DimensionPartStepper(props: DimensionPartStepperProps) {
         <button
           type="button"
           className="dimension-stepper-button"
+          aria-label={`Augmenter ${props.label}`}
+          onClick={props.onIncrement}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CompactDimensionPartStepper(props: DimensionPartStepperProps) {
+  return (
+    <div className="compact-dimension-part">
+      <span className="compact-dimension-label">{props.label}</span>
+      <div className="compact-stepper-single">
+        <button
+          type="button"
+          className="compact-stepper-button"
+          aria-label={`Diminuer ${props.label}`}
+          onClick={props.onDecrement}
+        >
+          -
+        </button>
+        <input
+          id={props.id}
+          min={props.min}
+          max={props.max}
+          step={1}
+          type="number"
+          inputMode="numeric"
+          value={props.value}
+          onChange={(event) => props.onValueChange(Number(event.target.value) || 0)}
+        />
+        <button
+          type="button"
+          className="compact-stepper-button"
           aria-label={`Augmenter ${props.label}`}
           onClick={props.onIncrement}
         >
