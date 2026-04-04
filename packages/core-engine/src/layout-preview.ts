@@ -165,6 +165,7 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
     roomWidthIn,
     roomLengthIn,
     input.tileWidthIn,
+    input.tileHeightIn,
   );
   const exteriorDoors = normalizeExteriorDoors(
     input.exteriorDoors ?? [],
@@ -420,6 +421,7 @@ function normalizeGarageDoor(
   roomWidthIn: number,
   roomLengthIn: number,
   tileWidthIn: number,
+  tileHeightIn: number,
 ): PreviewGarageDoor {
   const edgeDepthIn = 2.5;
   const doorThicknessIn = 2;
@@ -444,23 +446,35 @@ function normalizeGarageDoor(
     roomWidthIn,
     0,
   );
+  const alignedDepthIn = snapUpToGrid(
+    setbackDepthIn,
+    tileHeightIn,
+    roomLengthIn,
+    0,
+  );
   const openingWidthIn = Math.max(alignedEndIn - alignedStartIn, 0);
   const xIn = alignedStartIn;
   const frontEdgeFullPieces = Math.floor(openingWidthIn / edgeWidthIn);
   const remainder = Math.max(openingWidthIn - frontEdgeFullPieces * edgeWidthIn, 0);
   const frontEdgeCutPieces = remainder > 0.01 ? 1 : 0;
-  const sideReturnCutPieces = openingWidthIn > 0 ? 2 : 0;
-  const fullEdgePieces = frontEdgeFullPieces;
-  const cutEdgePieces = frontEdgeCutPieces + sideReturnCutPieces;
+  const sideReturnFullPiecesPerSide = Math.floor(alignedDepthIn / edgeWidthIn);
+  const sideReturnRemainderIn = Math.max(
+    alignedDepthIn - sideReturnFullPiecesPerSide * edgeWidthIn,
+    0,
+  );
+  const sideReturnCutPiecesPerSide = sideReturnRemainderIn > 0.01 ? 1 : 0;
+  const fullEdgePieces = frontEdgeFullPieces + sideReturnFullPiecesPerSide * 2;
+  const cutEdgePieces =
+    frontEdgeCutPieces + sideReturnCutPiecesPerSide * 2;
   const leftWidthIn = xIn;
   const rightWidthIn = Math.max(roomWidthIn - (xIn + openingWidthIn), 0);
-  const leftTileCutPieces = countIntersectingTileColumns(
+  const leftTileCutPieces = countPartiallyCoveredTileColumns(
     0,
     leftWidthIn,
     tileWidthIn,
     roomWidthIn,
   );
-  const rightTileCutPieces = countIntersectingTileColumns(
+  const rightTileCutPieces = countPartiallyCoveredTileColumns(
     xIn + openingWidthIn,
     roomWidthIn,
     tileWidthIn,
@@ -472,8 +486,8 @@ function normalizeGarageDoor(
     openingWidthIn,
     offsetFromLeftIn: xIn,
     xIn,
-    yIn: Math.max(roomLengthIn - setbackDepthIn, 0),
-    setbackDepthIn,
+    yIn: Math.max(roomLengthIn - alignedDepthIn, 0),
+    setbackDepthIn: alignedDepthIn,
     edgeDepthIn,
     edgeWidthIn,
     doorThicknessIn,
@@ -487,7 +501,7 @@ function normalizeGarageDoor(
     rightTileCutPieces,
     totalFrontTileCutPieces: leftTileCutPieces + rightTileCutPieces,
     sideTileCutsPerSide: Math.max(leftTileCutPieces, rightTileCutPieces),
-    tileCoverageAreaSqFt: (openingWidthIn * setbackDepthIn) / 144,
+    tileCoverageAreaSqFt: (openingWidthIn * alignedDepthIn) / 144,
   };
 }
 
@@ -600,6 +614,7 @@ function buildPreviewGarageSideDoor(input: {
   edgeWidthIn: number;
 }): PreviewExteriorDoor {
   const axisStepIn = input.door.wall === "bottom" ? input.tileWidthIn : input.tileHeightIn;
+  const depthStepIn = input.door.wall === "bottom" ? input.tileHeightIn : input.tileWidthIn;
   const axisLimitIn =
     input.door.wall === "bottom"
       ? input.roomWidthIn
@@ -616,6 +631,14 @@ function buildPreviewGarageSideDoor(input: {
     axisLimitIn,
     snapOriginIn,
   );
+  const depthLimitIn =
+    input.door.wall === "bottom" ? input.roomLengthIn : input.roomWidthIn;
+  const alignedDepthIn = snapUpToGrid(
+    input.setbackDepthIn,
+    depthStepIn,
+    depthLimitIn,
+    0,
+  );
   const alignedSpanIn = Math.max(alignedEndIn - alignedStartIn, 0);
   const { xIn, yIn, widthIn, heightIn } = getDoorWallRect({
     wall: input.door.wall,
@@ -623,7 +646,7 @@ function buildPreviewGarageSideDoor(input: {
     spanIn: alignedSpanIn,
     roomWidthIn: input.roomWidthIn,
     roomLengthIn: input.roomLengthIn,
-    depthIn: input.setbackDepthIn,
+    depthIn: alignedDepthIn,
   });
   const frontEdgeFullPieces = Math.floor(alignedSpanIn / input.edgeWidthIn);
   const frontRemainderIn = Math.max(
@@ -631,9 +654,17 @@ function buildPreviewGarageSideDoor(input: {
     0,
   );
   const frontEdgeCutPieces = frontRemainderIn > 0.01 ? 1 : 0;
-  const sideReturnCutPieces = alignedSpanIn > 0 ? 2 : 0;
+  const sideReturnFullPiecesPerSide = Math.floor(alignedDepthIn / input.edgeWidthIn);
+  const sideReturnRemainderIn = Math.max(
+    alignedDepthIn - sideReturnFullPiecesPerSide * input.edgeWidthIn,
+    0,
+  );
+  const sideReturnCutPiecesPerSide = sideReturnRemainderIn > 0.01 ? 1 : 0;
   const totalEdgePieces =
-    frontEdgeFullPieces + frontEdgeCutPieces + sideReturnCutPieces;
+    frontEdgeFullPieces +
+    frontEdgeCutPieces +
+    sideReturnFullPiecesPerSide * 2 +
+    sideReturnCutPiecesPerSide * 2;
 
   return {
     id: input.door.id,
@@ -645,16 +676,16 @@ function buildPreviewGarageSideDoor(input: {
     yIn,
     widthIn,
     heightIn,
-    setbackDepthIn: input.setbackDepthIn,
+    setbackDepthIn: alignedDepthIn,
     alignedStartIn,
     alignedEndIn,
     alignedSpanIn,
-    fullEdgePieces: frontEdgeFullPieces,
-    cutEdgePieces: frontEdgeCutPieces + sideReturnCutPieces,
+    fullEdgePieces: frontEdgeFullPieces + sideReturnFullPiecesPerSide * 2,
+    cutEdgePieces: frontEdgeCutPieces + sideReturnCutPiecesPerSide * 2,
     totalEdgePieces,
     concreteGapAreaSqFt: Math.max(
       0,
-      ((alignedSpanIn - input.openingWidthIn) * input.setbackDepthIn) / 144,
+      (widthIn * heightIn - input.openingWidthIn * input.setbackDepthIn) / 144,
     ),
     excludedAreaSqFt: (widthIn * heightIn) / 144,
   };
@@ -794,7 +825,7 @@ function pushPreviewCell(input: {
   });
 }
 
-function countIntersectingTileColumns(
+function countPartiallyCoveredTileColumns(
   startXIn: number,
   endXIn: number,
   tileWidthIn: number,
@@ -810,10 +841,11 @@ function countIntersectingTileColumns(
   for (let column = 0; column < columns; column += 1) {
     const columnXIn = column * tileWidthIn;
     const columnEndXIn = Math.min(columnXIn + tileWidthIn, roomWidthIn);
+    const columnWidthIn = columnEndXIn - columnXIn;
     const overlapWidthIn =
       Math.min(columnEndXIn, endXIn) - Math.max(columnXIn, startXIn);
 
-    if (overlapWidthIn > 0.001) {
+    if (overlapWidthIn > 0.001 && overlapWidthIn < columnWidthIn - 0.001) {
       count += 1;
     }
   }

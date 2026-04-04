@@ -394,8 +394,9 @@ export function ConfiguratorShell({
             </div>
 
             <p className="muted-copy" style={{ margin: "10px 0 0" }}>
-              Tout le plan commence 4.5" plus bas. Devant la porte : edges sur
-              l'ouverture, coupes de 4.5" de chaque cote.
+              Devant la porte, le plan cree maintenant un decrochement jusqu'a
+              la prochaine ligne de tuile pleine pour permettre un contour
+              d'edges sans coupe sous les retours.
             </p>
           </>
         ) : (

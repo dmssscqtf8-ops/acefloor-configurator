@@ -772,7 +772,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
               {preview.garageDoor.enabled ? (
                 <Text
                   y={preview.cutout.areaSqFt > 0 ? 36 : 18}
-                  text={`Porte garage • recul 4.5" • ${roundToTenth(
+                  text={`Porte garage • decrochement aligne • ${roundToTenth(
                     props.garageDoorWidth,
                   )} ${props.unit}`}
                   fill="rgba(241,210,141,0.88)"
