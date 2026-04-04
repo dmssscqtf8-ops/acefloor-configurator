@@ -5,7 +5,6 @@ import {
   buildRoomPreview,
   computeEstimateFromPreview,
   formatCurrency,
-  fromInches,
 } from "@acefloor/core-engine";
 import { catalogProducts } from "../data/mock-catalog";
 import { useConfiguratorStore } from "../store/use-configurator-store";
@@ -251,7 +250,6 @@ export function ConfiguratorShell({
     garageDoorOffset,
     obstaclesCount: obstacles.length,
   });
-  const tileFormatLabel = `${selectedProduct.tileWidthIn}" x ${selectedProduct.tileHeightIn}"`;
   const controlsSummary = [
     `${formatDimensionValue(roomWidth, unit)} x ${formatDimensionValue(roomLength, unit)}`,
     garageDoorEnabled ? "seuil garage actif" : "sans seuil garage",
@@ -263,6 +261,9 @@ export function ConfiguratorShell({
     `${estimate.boxesRequired} boite${estimate.boxesRequired > 1 ? "s" : ""}`,
     `${formatCurrency(projectTotal)}`,
   ].join(" • ");
+  const installationDirectionNote = garageDoorEnabled
+    ? "commencer par le edge de la porte de garage principale, puis poser la premiere tuile en bas a gauche. Voir les videos explicatives d'installation."
+    : "commencer par la premiere tuile en bas a gauche. Voir les videos explicatives d'installation.";
 
   const handleExportReady = useCallback((dataUrl: string) => {
     const link = document.createElement("a");
@@ -829,63 +830,38 @@ export function ConfiguratorShell({
         <h2 className="summary-title">Details chantier</h2>
         <div className="summary-grid">
           <div className="summary-metric compact">
-            <span className="summary-metric-label">Coupes plan</span>
+            <span className="summary-metric-label">Tuiles</span>
             <strong className="summary-metric-value">
-              {estimate.cutTiles} tuiles
+              {estimate.installTiles}
             </strong>
           </div>
           <div className="summary-metric compact">
-            <span className="summary-metric-label">Edges porte</span>
+            <span className="summary-metric-label">Edges</span>
             <strong className="summary-metric-value">
               {estimate.garageDoorEdgeTotalPieces} pcs
             </strong>
           </div>
           <div className="summary-metric compact">
-            <span className="summary-metric-label">Overage boite</span>
+            <span className="summary-metric-label">Coupes</span>
             <strong className="summary-metric-value">
-              {estimate.boxOverageTiles} tuiles
+              {estimate.cutTiles}
             </strong>
           </div>
           <div className="summary-metric compact">
-            <span className="summary-metric-label">Hors pose</span>
+            <span className="summary-metric-label">Pi2 reel</span>
             <strong className="summary-metric-value">
-              {preview.excludedAreaSqFt.toFixed(1)} pi²
+              {estimate.areaSqFt.toFixed(1)} pi²
             </strong>
           </div>
           <div className="summary-metric compact">
-            <span className="summary-metric-label">Complexite</span>
+            <span className="summary-metric-label">Pi2 facturable</span>
             <strong className="summary-metric-value">
-              {estimate.complexityLabel}
+              {estimate.billableAreaSqFt.toFixed(1)} pi²
             </strong>
           </div>
         </div>
         <p className="summary-note">
-          Materiau :{" "}
-          <strong>{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</strong>
-          {" "}| Pose :{" "}
-          <strong>
-            {includeInstallation
-              ? `${formatCurrency(installationPricePerSqFt)} / pi² incluse`
-              : "non incluse"}
-          </strong>
-          {" "}| Rendement pose :{" "}
-          <strong>{estimate.layoutEfficiencyPercent.toFixed(1)}%</strong>
-          {" "}| Format : <strong>{tileFormatLabel}</strong>
-          {" "}| Offset porte :{" "}
-          <strong>
-            {fromInches(estimate.garageDoorOffsetIn, unit).toFixed(1)} {unit}
-          </strong>
-          {" "}| Coupes avant G/D :{" "}
-          <strong>
-            {estimate.garageDoorLeftTileCuts} / {estimate.garageDoorRightTileCuts}
-          </strong>
-          {" "}| Total coupes avant :{" "}
-          <strong>{estimate.garageDoorFrontTileCutsTotal}</strong>
-          {" "}| Hors pose :{" "}
-          <strong>{preview.excludedAreaSqFt.toFixed(1)} pi²</strong>
-          {" "}| Decrochements : <strong>{obstacles.length}</strong>
-          {" "}| Bordure :{" "}
-          <strong>{estimate.borderLinearFeet.toFixed(1)} pi lin.</strong>
+          <strong>Sens d'installation :</strong> {installationDirectionNote}
         </p>
       </section>
 
