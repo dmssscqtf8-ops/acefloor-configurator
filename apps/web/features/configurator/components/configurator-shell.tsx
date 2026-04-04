@@ -393,11 +393,11 @@ export function ConfiguratorShell({
               />
             </div>
 
-            <p className="muted-copy" style={{ margin: "10px 0 0" }}>
-              Devant la porte, le plan cree maintenant un decrochement jusqu'a
-              la prochaine ligne de tuile pleine pour permettre un contour
-              d'edges sans coupe sous les retours.
-            </p>
+              <p className="muted-copy" style={{ margin: "10px 0 0" }}>
+                Au bas, le montage demarre avec les edges directement sur la
+                porte. Les coupes se gerent de chaque cote de l'ouverture, sans
+                decrochement beton au seuil principal.
+              </p>
           </>
         ) : (
           <p className="muted-copy" style={{ margin: 0 }}>
@@ -516,7 +516,9 @@ export function ConfiguratorShell({
 
                   <p className="muted-copy" style={{ margin: "10px 0 0" }}>
                     {door.kind === "garage"
-                      ? "Une porte de garage cree un decrochement aligne aux tuiles pleines. Une bande de beton peut rester visible a peinturer."
+                      ? door.wall === "bottom"
+                        ? "Au fond, les edges partent directement sur la porte. Le decrochement beton s'applique seulement aux murs lateraux."
+                        : "Sur un mur lateral, la porte de garage cree un decrochement aligne aux tuiles pleines. Une bande de beton peut rester visible a peinturer."
                       : "Une porte d'homme n'a pas besoin de edge devant l'ouverture."}
                   </p>
                 </div>

@@ -606,62 +606,51 @@ export function RoomCanvas(props: RoomCanvasProps) {
                   );
                 }}
               >
-                <Rect
-                  x={0}
-                  y={0}
+                <GarageThresholdOverlay
                   width={Math.max(garageDoorWidthPx, 1)}
                   height={Math.max(garageDoorHeightPx, 1)}
-                  fill="rgba(210,161,58,0.14)"
-                  stroke="rgba(241, 204, 114, 0.9)"
-                  strokeWidth={1.5}
-                  dash={[10, 6]}
-                />
-                <Text
-                  x={12}
-                  y={12}
-                  text={`Edges porte • ${preview.garageDoor.totalEdgePieces} pcs`}
-                  fill="#f1d28d"
-                  fontSize={12}
+                  label={`Edges porte • ${preview.garageDoor.totalEdgePieces} pcs`}
                 />
               </Group>
             ) : null}
 
             {preview.exteriorDoors.map((door) => (
-              <Group key={door.id}>
-                <Rect
-                  x={offsetX + door.xIn * scale}
-                  y={offsetY + door.yIn * scale}
-                  width={Math.max(door.widthIn * scale, 6)}
-                  height={Math.max(door.heightIn * scale, 6)}
-                  fill={
-                    door.kind === "garage"
-                      ? "rgba(241, 204, 114, 0.14)"
-                      : "rgba(126, 208, 255, 0.14)"
-                  }
-                  stroke={
-                    door.kind === "garage"
-                      ? "rgba(241, 204, 114, 0.95)"
-                      : "rgba(126, 208, 255, 0.95)"
-                  }
-                  strokeWidth={1.5}
-                  dash={door.kind === "garage" ? [10, 6] : [6, 6]}
-                  cornerRadius={10}
-                />
-                <Text
-                  x={offsetX + door.xIn * scale + 8}
-                  y={offsetY + door.yIn * scale + 8}
-                  text={
-                    door.kind === "garage"
-                      ? `Porte garage • ${door.totalEdgePieces} edges`
-                      : "Porte d'homme"
-                  }
-                  fill={
-                    door.kind === "garage"
-                      ? "#f1d28d"
-                      : "rgba(126, 208, 255, 0.96)"
-                  }
-                  fontSize={12}
-                />
+              <Group key={door.id} x={offsetX + door.xIn * scale} y={offsetY + door.yIn * scale}>
+                {door.kind === "garage" && door.wall !== "bottom" ? (
+                  <GarageRecessOverlay
+                    wall={door.wall}
+                    width={Math.max(door.widthIn * scale, 6)}
+                    height={Math.max(door.heightIn * scale, 6)}
+                    label={`Porte garage • ${door.totalEdgePieces} edges`}
+                  />
+                ) : door.kind === "garage" ? (
+                  <GarageThresholdOverlay
+                    width={Math.max(door.widthIn * scale, 6)}
+                    height={Math.max(door.heightIn * scale, 6)}
+                    label={`Porte garage • ${door.totalEdgePieces} edges`}
+                  />
+                ) : (
+                  <>
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={Math.max(door.widthIn * scale, 6)}
+                      height={Math.max(door.heightIn * scale, 6)}
+                      fill="rgba(126, 208, 255, 0.14)"
+                      stroke="rgba(126, 208, 255, 0.95)"
+                      strokeWidth={1.5}
+                      dash={[6, 6]}
+                      cornerRadius={10}
+                    />
+                    <Text
+                      x={8}
+                      y={8}
+                      text="Porte d'homme"
+                      fill="rgba(126, 208, 255, 0.96)"
+                      fontSize={12}
+                    />
+                  </>
+                )}
               </Group>
             ))}
 
@@ -772,7 +761,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
               {preview.garageDoor.enabled ? (
                 <Text
                   y={preview.cutout.areaSqFt > 0 ? 36 : 18}
-                  text={`Porte garage • decrochement aligne • ${roundToTenth(
+                  text={`Porte garage • seuil edge au bas • ${roundToTenth(
                     props.garageDoorWidth,
                   )} ${props.unit}`}
                   fill="rgba(241,210,141,0.88)"
@@ -1002,6 +991,117 @@ function isLightColor(hex: string): boolean {
   const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
 
   return luminance >= 168;
+}
+
+type GarageRecessOverlayProps = {
+  wall: "left" | "right" | "bottom";
+  width: number;
+  height: number;
+  label: string;
+};
+
+function GarageRecessOverlay(props: GarageRecessOverlayProps) {
+  const contourInset = clamp(Math.min(props.width, props.height) * 0.14, 4, 10);
+  const labelWidth = Math.min(Math.max(props.width + 140, 140), 220);
+  const labelX =
+    props.wall === "right"
+      ? Math.max(props.width - labelWidth - 8, 8)
+      : 8;
+  const labelY = Math.min(10, Math.max(props.height - 24, 8));
+  const contourPoints = getGarageRecessContourPoints(
+    props.wall,
+    props.width,
+    props.height,
+    contourInset,
+  );
+
+  return (
+    <Group>
+      <Rect
+        x={0}
+        y={0}
+        width={props.width}
+        height={props.height}
+        fill="rgba(112, 119, 113, 0.96)"
+      />
+      <Line
+        points={contourPoints}
+        stroke="rgba(241, 159, 56, 0.96)"
+        strokeWidth={1.5}
+        dash={[9, 6]}
+        lineJoin="round"
+        lineCap="round"
+      />
+      <Text
+        x={labelX}
+        y={labelY}
+        width={labelWidth}
+        text={props.label}
+        fill="#f1d28d"
+        fontSize={12}
+        align={props.wall === "right" ? "right" : "left"}
+      />
+    </Group>
+  );
+}
+
+type GarageThresholdOverlayProps = {
+  width: number;
+  height: number;
+  label: string;
+};
+
+function GarageThresholdOverlay(props: GarageThresholdOverlayProps) {
+  const labelWidth = Math.min(Math.max(props.width + 96, 132), 220);
+
+  return (
+    <Group>
+      <Rect
+        x={0}
+        y={0}
+        width={props.width}
+        height={props.height}
+        fill="rgba(210, 161, 58, 0.14)"
+        stroke="rgba(241, 204, 114, 0.9)"
+        strokeWidth={1.5}
+        dash={[10, 6]}
+      />
+      <Text
+        x={8}
+        y={Math.min(10, Math.max(props.height - 24, 8))}
+        width={labelWidth}
+        text={props.label}
+        fill="#f1d28d"
+        fontSize={12}
+      />
+    </Group>
+  );
+}
+
+function getGarageRecessContourPoints(
+  wall: GarageRecessOverlayProps["wall"],
+  width: number,
+  height: number,
+  inset: number,
+): number[] {
+  const safeWidth = Math.max(width, inset * 2 + 2);
+  const safeHeight = Math.max(height, inset * 2 + 2);
+  const leftX = wall === "right" ? inset : 0;
+  const rightX = wall === "left" ? safeWidth - inset : safeWidth;
+  const innerLeftX = inset;
+  const innerRightX = safeWidth - inset;
+  const topY = inset;
+  const bottomY = safeHeight - inset;
+
+  switch (wall) {
+    case "left":
+      return [leftX, topY, innerRightX, topY, innerRightX, bottomY, leftX, bottomY];
+    case "right":
+      return [rightX, topY, innerLeftX, topY, innerLeftX, bottomY, rightX, bottomY];
+    case "bottom":
+    default:
+      return [innerLeftX, safeHeight, innerLeftX, topY, innerRightX, topY, innerRightX, safeHeight];
+  }
 }
 
 type MeasurementOverlayProps = {
