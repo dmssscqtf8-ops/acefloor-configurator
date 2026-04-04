@@ -1001,7 +1001,7 @@ type GarageRecessOverlayProps = {
 };
 
 function GarageRecessOverlay(props: GarageRecessOverlayProps) {
-  const contourInset = clamp(Math.min(props.width, props.height) * 0.14, 4, 10);
+  const edgeBand = getGarageEdgeBandThickness(props.width, props.height, 0.16);
   const labelWidth = Math.min(Math.max(props.width + 140, 140), 220);
   const labelX =
     props.wall === "right"
@@ -1012,7 +1012,13 @@ function GarageRecessOverlay(props: GarageRecessOverlayProps) {
     props.wall,
     props.width,
     props.height,
-    contourInset,
+    edgeBand / 2,
+  );
+  const edgeSegments = getGarageRecessEdgeSegments(
+    props.wall,
+    props.width,
+    props.height,
+    edgeBand,
   );
 
   return (
@@ -1024,11 +1030,23 @@ function GarageRecessOverlay(props: GarageRecessOverlayProps) {
         height={props.height}
         fill="rgba(112, 119, 113, 0.96)"
       />
+      {edgeSegments.map((segment, index) => (
+        <Rect
+          key={`${segment.x}-${segment.y}-${segment.width}-${segment.height}-${index}`}
+          x={segment.x}
+          y={segment.y}
+          width={segment.width}
+          height={segment.height}
+          fill="rgba(241, 159, 56, 0.28)"
+          stroke="rgba(241, 184, 96, 0.94)"
+          strokeWidth={1}
+        />
+      ))}
       <Line
         points={contourPoints}
         stroke="rgba(241, 159, 56, 0.96)"
         strokeWidth={1.5}
-        dash={[9, 6]}
+        dash={[8, 5]}
         lineJoin="round"
         lineCap="round"
       />
@@ -1053,6 +1071,9 @@ type GarageThresholdOverlayProps = {
 
 function GarageThresholdOverlay(props: GarageThresholdOverlayProps) {
   const labelWidth = Math.min(Math.max(props.width + 96, 132), 220);
+  const edgeBand = getGarageEdgeBandThickness(props.width, props.height, 0.26);
+  const bandY = Math.max(props.height - edgeBand, 0);
+  const guideInset = clamp(edgeBand * 0.6, 3, 8);
 
   return (
     <Group>
@@ -1061,10 +1082,35 @@ function GarageThresholdOverlay(props: GarageThresholdOverlayProps) {
         y={0}
         width={props.width}
         height={props.height}
-        fill="rgba(210, 161, 58, 0.14)"
-        stroke="rgba(241, 204, 114, 0.9)"
+        fill="rgba(12, 14, 18, 0.16)"
+      />
+      <Rect
+        x={0}
+        y={bandY}
+        width={props.width}
+        height={edgeBand}
+        fill="rgba(241, 159, 56, 0.28)"
+        stroke="rgba(241, 204, 114, 0.94)"
+        strokeWidth={1.1}
+      />
+      <Line
+        points={[0, bandY, props.width, bandY]}
+        stroke="rgba(241, 204, 114, 0.98)"
         strokeWidth={1.5}
-        dash={[10, 6]}
+        dash={[8, 5]}
+        lineCap="round"
+      />
+      <Line
+        points={[guideInset, 0, guideInset, props.height]}
+        stroke="rgba(241, 204, 114, 0.52)"
+        strokeWidth={1.1}
+        dash={[6, 6]}
+      />
+      <Line
+        points={[props.width - guideInset, 0, props.width - guideInset, props.height]}
+        stroke="rgba(241, 204, 114, 0.52)"
+        strokeWidth={1.1}
+        dash={[6, 6]}
       />
       <Text
         x={8}
@@ -1102,6 +1148,41 @@ function getGarageRecessContourPoints(
     default:
       return [innerLeftX, safeHeight, innerLeftX, topY, innerRightX, topY, innerRightX, safeHeight];
   }
+}
+
+function getGarageRecessEdgeSegments(
+  wall: GarageRecessOverlayProps["wall"],
+  width: number,
+  height: number,
+  band: number,
+): Array<{ x: number; y: number; width: number; height: number }> {
+  const safeBand = Math.max(Math.min(band, width, height), 1);
+
+  switch (wall) {
+    case "left":
+      return [
+        { x: 0, y: 0, width, height: safeBand },
+        { x: Math.max(width - safeBand, 0), y: 0, width: safeBand, height },
+        { x: 0, y: Math.max(height - safeBand, 0), width, height: safeBand },
+      ];
+    case "right":
+      return [
+        { x: 0, y: 0, width, height: safeBand },
+        { x: 0, y: 0, width: safeBand, height },
+        { x: 0, y: Math.max(height - safeBand, 0), width, height: safeBand },
+      ];
+    case "bottom":
+    default:
+      return [
+        { x: 0, y: 0, width: safeBand, height },
+        { x: 0, y: 0, width, height: safeBand },
+        { x: Math.max(width - safeBand, 0), y: 0, width: safeBand, height },
+      ];
+  }
+}
+
+function getGarageEdgeBandThickness(width: number, height: number, ratio: number): number {
+  return clamp(Math.min(width, height) * ratio, 4, 12);
 }
 
 type MeasurementOverlayProps = {
