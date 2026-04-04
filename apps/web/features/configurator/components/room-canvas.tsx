@@ -181,6 +181,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
   const cutoutWidthPx = preview.cutout.widthIn * scale;
   const cutoutHeightPx = preview.cutout.lengthIn * scale;
   const garageDoorX = offsetX + preview.garageDoor.xIn * scale;
+  const garageDoorY = offsetY + preview.garageDoor.yIn * scale;
   const garageDoorWidthPx = preview.garageDoor.openingWidthIn * scale;
   const garageDoorHeightPx = preview.garageDoor.setbackDepthIn * scale;
   const showLegend = stageWidth >= 760 && stageHeight >= 540;
@@ -583,7 +584,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
               <Group
                 name="garage-door"
                 x={garageDoorX}
-                y={offsetY}
+                y={garageDoorY}
                 draggable
                 dragBoundFunc={(position) => ({
                   x: clamp(
@@ -591,7 +592,7 @@ export function RoomCanvas(props: RoomCanvasProps) {
                     offsetX,
                     offsetX + roomWidthPx - garageDoorWidthPx,
                   ),
-                  y: offsetY,
+                  y: garageDoorY,
                 })}
                 onDragEnd={(event) => {
                   const nextOffsetIn = clamp(

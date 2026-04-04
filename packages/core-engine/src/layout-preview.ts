@@ -163,6 +163,7 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
     input.garageDoorOffset,
     input.unit,
     roomWidthIn,
+    roomLengthIn,
     input.tileWidthIn,
   );
   const exteriorDoors = normalizeExteriorDoors(
@@ -189,12 +190,22 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
   const rightOuterColumnCount = 1;
   const rightSecondaryInsetColumns =
     lastColumnWidthIn < input.tileWidthIn - 0.001 ? 2 : 1;
-  const mainStartYIn = garageDoor.enabled ? garageDoor.setbackDepthIn : 0;
+  const mainLengthIn = Math.max(
+    roomLengthIn - (garageDoor.enabled ? garageDoor.setbackDepthIn : 0),
+    0,
+  );
   const mainRows = Math.max(
     0,
-    Math.ceil(Math.max(roomLengthIn - mainStartYIn, 0) / input.tileHeightIn),
+    Math.ceil(mainLengthIn / input.tileHeightIn),
   );
   const rows = Math.max(mainRows + (garageDoor.enabled ? 1 : 0), 1);
+  const topSecondRow = 1;
+  const bottomOuterRow = garageDoor.enabled
+    ? mainRows
+    : Math.max(mainRows - 1, 0);
+  const bottomSecondRow = garageDoor.enabled
+    ? Math.max(mainRows - 1, 0)
+    : Math.max(mainRows - 2, 0);
   const cells: PreviewCell[] = [];
   let excludedAreaIn2 = garageDoor.enabled
     ? garageDoor.openingWidthIn * garageDoor.setbackDepthIn
@@ -261,17 +272,17 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
           leftOuterColumnCount,
           rightOuterColumnCount,
           rightSecondaryInsetColumns,
-          topSecondRow: 1,
-          bottomOuterRow: Math.max(mainRows - 1, 0),
-          bottomSecondRow: Math.max(mainRows - 2, 0),
+          topSecondRow,
+          bottomOuterRow,
+          bottomSecondRow,
           tileWidthIn: input.tileWidthIn,
           tileHeightIn: input.tileHeightIn,
           pattern: input.pattern,
-          row: -1,
-          patternRow: 0,
+          row: mainRows,
+          patternRow: mainRows,
           column,
           xIn: frontCellXIn,
-          yIn: 0,
+          yIn: garageDoor.yIn,
           widthIn: frontCellWidthIn,
           heightIn: garageDoor.setbackDepthIn,
           excludedAreaIn2Ref,
@@ -285,8 +296,8 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
   }
 
   for (let row = 0; row < mainRows; row += 1) {
-    const yIn = mainStartYIn + row * input.tileHeightIn;
-    const remainingHeight = Math.max(roomLengthIn - yIn, 0);
+    const yIn = row * input.tileHeightIn;
+    const remainingHeight = Math.max(mainLengthIn - yIn, 0);
     const heightIn = Math.min(input.tileHeightIn, remainingHeight);
 
     for (let column = 0; column < columns; column += 1) {
@@ -305,9 +316,9 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
         leftOuterColumnCount,
         rightOuterColumnCount,
         rightSecondaryInsetColumns,
-        topSecondRow: 1,
-        bottomOuterRow: Math.max(mainRows - 1, 0),
-        bottomSecondRow: Math.max(mainRows - 2, 0),
+        topSecondRow,
+        bottomOuterRow,
+        bottomSecondRow,
         tileWidthIn: input.tileWidthIn,
         tileHeightIn: input.tileHeightIn,
         pattern: input.pattern,
@@ -407,24 +418,40 @@ function normalizeGarageDoor(
   garageDoorOffset: number | undefined,
   unit: Unit,
   roomWidthIn: number,
+  roomLengthIn: number,
   tileWidthIn: number,
 ): PreviewGarageDoor {
   const edgeDepthIn = 2.5;
   const doorThicknessIn = 2;
   const setbackDepthIn = edgeDepthIn + doorThicknessIn;
   const edgeWidthIn = 15.75;
-  const openingWidthIn = enabled
+  const requestedOpeningWidthIn = enabled
     ? clamp(toInches(Math.max(garageDoorWidth, 0), unit), 0, roomWidthIn)
     : 0;
-  const maxOffsetIn = Math.max(roomWidthIn - openingWidthIn, 0);
+  const maxOffsetIn = Math.max(roomWidthIn - requestedOpeningWidthIn, 0);
   const requestedOffsetIn =
     garageDoorOffset === undefined
-      ? (roomWidthIn - openingWidthIn) / 2
+      ? (roomWidthIn - requestedOpeningWidthIn) / 2
       : toInches(Math.max(garageDoorOffset, 0), unit);
-  const xIn = clamp(requestedOffsetIn, 0, maxOffsetIn);
-  const fullEdgePieces = Math.floor(openingWidthIn / edgeWidthIn);
-  const remainder = Math.max(openingWidthIn - fullEdgePieces * edgeWidthIn, 0);
-  const cutEdgePieces = remainder > 0.01 ? 1 : 0;
+  const alignedStartIn = snapDownToGrid(
+    clamp(requestedOffsetIn, 0, maxOffsetIn),
+    tileWidthIn,
+    0,
+  );
+  const alignedEndIn = snapUpToGrid(
+    clamp(requestedOffsetIn, 0, maxOffsetIn) + requestedOpeningWidthIn,
+    tileWidthIn,
+    roomWidthIn,
+    0,
+  );
+  const openingWidthIn = Math.max(alignedEndIn - alignedStartIn, 0);
+  const xIn = alignedStartIn;
+  const frontEdgeFullPieces = Math.floor(openingWidthIn / edgeWidthIn);
+  const remainder = Math.max(openingWidthIn - frontEdgeFullPieces * edgeWidthIn, 0);
+  const frontEdgeCutPieces = remainder > 0.01 ? 1 : 0;
+  const sideReturnCutPieces = openingWidthIn > 0 ? 2 : 0;
+  const fullEdgePieces = frontEdgeFullPieces;
+  const cutEdgePieces = frontEdgeCutPieces + sideReturnCutPieces;
   const leftWidthIn = xIn;
   const rightWidthIn = Math.max(roomWidthIn - (xIn + openingWidthIn), 0);
   const leftTileCutPieces = countIntersectingTileColumns(
@@ -445,7 +472,7 @@ function normalizeGarageDoor(
     openingWidthIn,
     offsetFromLeftIn: xIn,
     xIn,
-    yIn: 0,
+    yIn: Math.max(roomLengthIn - setbackDepthIn, 0),
     setbackDepthIn,
     edgeDepthIn,
     edgeWidthIn,
@@ -453,7 +480,7 @@ function normalizeGarageDoor(
     fullEdgePieces,
     cutEdgePieces,
     totalEdgePieces: fullEdgePieces + cutEdgePieces,
-    cutEdgeWidthIn: cutEdgePieces === 1 ? remainder : 0,
+    cutEdgeWidthIn: frontEdgeCutPieces === 1 ? remainder : 0,
     sideLeftWidthIn: leftWidthIn,
     sideRightWidthIn: rightWidthIn,
     leftTileCutPieces,
@@ -573,9 +600,11 @@ function buildPreviewGarageSideDoor(input: {
   edgeWidthIn: number;
 }): PreviewExteriorDoor {
   const axisStepIn = input.door.wall === "bottom" ? input.tileWidthIn : input.tileHeightIn;
-  const axisLimitIn = input.door.wall === "bottom" ? input.roomWidthIn : input.roomLengthIn;
-  const snapOriginIn =
-    input.door.wall === "bottom" ? 0 : Math.max(input.frontGarageSetbackIn, 0);
+  const axisLimitIn =
+    input.door.wall === "bottom"
+      ? input.roomWidthIn
+      : Math.max(input.roomLengthIn - Math.max(input.frontGarageSetbackIn, 0), 0);
+  const snapOriginIn = 0;
   const alignedStartIn = snapDownToGrid(
     input.offsetFromOriginIn,
     axisStepIn,
@@ -596,8 +625,15 @@ function buildPreviewGarageSideDoor(input: {
     roomLengthIn: input.roomLengthIn,
     depthIn: input.setbackDepthIn,
   });
+  const frontEdgeFullPieces = Math.floor(alignedSpanIn / input.edgeWidthIn);
+  const frontRemainderIn = Math.max(
+    alignedSpanIn - frontEdgeFullPieces * input.edgeWidthIn,
+    0,
+  );
+  const frontEdgeCutPieces = frontRemainderIn > 0.01 ? 1 : 0;
+  const sideReturnCutPieces = alignedSpanIn > 0 ? 2 : 0;
   const totalEdgePieces =
-    alignedSpanIn > 0 ? Math.ceil(alignedSpanIn / input.edgeWidthIn) : 0;
+    frontEdgeFullPieces + frontEdgeCutPieces + sideReturnCutPieces;
 
   return {
     id: input.door.id,
@@ -613,8 +649,8 @@ function buildPreviewGarageSideDoor(input: {
     alignedStartIn,
     alignedEndIn,
     alignedSpanIn,
-    fullEdgePieces: totalEdgePieces,
-    cutEdgePieces: 0,
+    fullEdgePieces: frontEdgeFullPieces,
+    cutEdgePieces: frontEdgeCutPieces + sideReturnCutPieces,
     totalEdgePieces,
     concreteGapAreaSqFt: Math.max(
       0,
