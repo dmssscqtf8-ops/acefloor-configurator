@@ -517,7 +517,7 @@ export function ConfiguratorShell({
                   <p className="muted-copy" style={{ margin: "10px 0 0" }}>
                     {door.kind === "garage"
                       ? door.wall === "bottom"
-                        ? "Au fond, les edges partent directement sur la porte. Le decrochement beton s'applique seulement aux murs lateraux."
+                        ? "Au fond, la porte de garage cree elle aussi un decrochement aligne aux tuiles pleines. La regle du seuil direct s'applique seulement a la porte principale du bas."
                         : "Sur un mur lateral, la porte de garage cree un decrochement aligne aux tuiles pleines. Une bande de beton peut rester visible a peinturer."
                       : "Une porte d'homme n'a pas besoin de edge devant l'ouverture."}
                   </p>

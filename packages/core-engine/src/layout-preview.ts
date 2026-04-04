@@ -165,7 +165,6 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
     roomWidthIn,
     roomLengthIn,
     input.tileWidthIn,
-    input.tileHeightIn,
   );
   const exteriorDoors = normalizeExteriorDoors(
     input.exteriorDoors ?? [],
@@ -421,60 +420,32 @@ function normalizeGarageDoor(
   roomWidthIn: number,
   roomLengthIn: number,
   tileWidthIn: number,
-  tileHeightIn: number,
 ): PreviewGarageDoor {
   const edgeDepthIn = 2.5;
   const doorThicknessIn = 2;
   const setbackDepthIn = edgeDepthIn + doorThicknessIn;
   const edgeWidthIn = 15.75;
-  const requestedOpeningWidthIn = enabled
+  const openingWidthIn = enabled
     ? clamp(toInches(Math.max(garageDoorWidth, 0), unit), 0, roomWidthIn)
     : 0;
-  const maxOffsetIn = Math.max(roomWidthIn - requestedOpeningWidthIn, 0);
+  const maxOffsetIn = Math.max(roomWidthIn - openingWidthIn, 0);
   const requestedOffsetIn =
     garageDoorOffset === undefined
-      ? (roomWidthIn - requestedOpeningWidthIn) / 2
+      ? (roomWidthIn - openingWidthIn) / 2
       : toInches(Math.max(garageDoorOffset, 0), unit);
-  const alignedStartIn = snapDownToGrid(
-    clamp(requestedOffsetIn, 0, maxOffsetIn),
-    tileWidthIn,
-    0,
-  );
-  const alignedEndIn = snapUpToGrid(
-    clamp(requestedOffsetIn, 0, maxOffsetIn) + requestedOpeningWidthIn,
-    tileWidthIn,
-    roomWidthIn,
-    0,
-  );
-  const alignedDepthIn = snapUpToGrid(
-    setbackDepthIn,
-    tileHeightIn,
-    roomLengthIn,
-    0,
-  );
-  const openingWidthIn = Math.max(alignedEndIn - alignedStartIn, 0);
-  const xIn = alignedStartIn;
-  const frontEdgeFullPieces = Math.floor(openingWidthIn / edgeWidthIn);
-  const remainder = Math.max(openingWidthIn - frontEdgeFullPieces * edgeWidthIn, 0);
-  const frontEdgeCutPieces = remainder > 0.01 ? 1 : 0;
-  const sideReturnFullPiecesPerSide = Math.floor(alignedDepthIn / edgeWidthIn);
-  const sideReturnRemainderIn = Math.max(
-    alignedDepthIn - sideReturnFullPiecesPerSide * edgeWidthIn,
-    0,
-  );
-  const sideReturnCutPiecesPerSide = sideReturnRemainderIn > 0.01 ? 1 : 0;
-  const fullEdgePieces = frontEdgeFullPieces + sideReturnFullPiecesPerSide * 2;
-  const cutEdgePieces =
-    frontEdgeCutPieces + sideReturnCutPiecesPerSide * 2;
+  const xIn = clamp(requestedOffsetIn, 0, maxOffsetIn);
+  const fullEdgePieces = Math.floor(openingWidthIn / edgeWidthIn);
+  const remainder = Math.max(openingWidthIn - fullEdgePieces * edgeWidthIn, 0);
+  const cutEdgePieces = remainder > 0.01 ? 1 : 0;
   const leftWidthIn = xIn;
   const rightWidthIn = Math.max(roomWidthIn - (xIn + openingWidthIn), 0);
-  const leftTileCutPieces = countPartiallyCoveredTileColumns(
+  const leftTileCutPieces = countIntersectingTileColumns(
     0,
     leftWidthIn,
     tileWidthIn,
     roomWidthIn,
   );
-  const rightTileCutPieces = countPartiallyCoveredTileColumns(
+  const rightTileCutPieces = countIntersectingTileColumns(
     xIn + openingWidthIn,
     roomWidthIn,
     tileWidthIn,
@@ -486,22 +457,22 @@ function normalizeGarageDoor(
     openingWidthIn,
     offsetFromLeftIn: xIn,
     xIn,
-    yIn: Math.max(roomLengthIn - alignedDepthIn, 0),
-    setbackDepthIn: alignedDepthIn,
+    yIn: Math.max(roomLengthIn - setbackDepthIn, 0),
+    setbackDepthIn,
     edgeDepthIn,
     edgeWidthIn,
     doorThicknessIn,
     fullEdgePieces,
     cutEdgePieces,
     totalEdgePieces: fullEdgePieces + cutEdgePieces,
-    cutEdgeWidthIn: frontEdgeCutPieces === 1 ? remainder : 0,
+    cutEdgeWidthIn: cutEdgePieces === 1 ? remainder : 0,
     sideLeftWidthIn: leftWidthIn,
     sideRightWidthIn: rightWidthIn,
     leftTileCutPieces,
     rightTileCutPieces,
     totalFrontTileCutPieces: leftTileCutPieces + rightTileCutPieces,
     sideTileCutsPerSide: Math.max(leftTileCutPieces, rightTileCutPieces),
-    tileCoverageAreaSqFt: (openingWidthIn * alignedDepthIn) / 144,
+    tileCoverageAreaSqFt: (openingWidthIn * setbackDepthIn) / 144,
   };
 }
 
@@ -825,7 +796,7 @@ function pushPreviewCell(input: {
   });
 }
 
-function countPartiallyCoveredTileColumns(
+function countIntersectingTileColumns(
   startXIn: number,
   endXIn: number,
   tileWidthIn: number,
@@ -841,11 +812,10 @@ function countPartiallyCoveredTileColumns(
   for (let column = 0; column < columns; column += 1) {
     const columnXIn = column * tileWidthIn;
     const columnEndXIn = Math.min(columnXIn + tileWidthIn, roomWidthIn);
-    const columnWidthIn = columnEndXIn - columnXIn;
     const overlapWidthIn =
       Math.min(columnEndXIn, endXIn) - Math.max(columnXIn, startXIn);
 
-    if (overlapWidthIn > 0.001 && overlapWidthIn < columnWidthIn - 0.001) {
+    if (overlapWidthIn > 0.001) {
       count += 1;
     }
   }

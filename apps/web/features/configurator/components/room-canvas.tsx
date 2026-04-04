@@ -616,15 +616,9 @@ export function RoomCanvas(props: RoomCanvasProps) {
 
             {preview.exteriorDoors.map((door) => (
               <Group key={door.id} x={offsetX + door.xIn * scale} y={offsetY + door.yIn * scale}>
-                {door.kind === "garage" && door.wall !== "bottom" ? (
+                {door.kind === "garage" ? (
                   <GarageRecessOverlay
                     wall={door.wall}
-                    width={Math.max(door.widthIn * scale, 6)}
-                    height={Math.max(door.heightIn * scale, 6)}
-                    label={`Porte garage • ${door.totalEdgePieces} edges`}
-                  />
-                ) : door.kind === "garage" ? (
-                  <GarageThresholdOverlay
                     width={Math.max(door.widthIn * scale, 6)}
                     height={Math.max(door.heightIn * scale, 6)}
                     label={`Porte garage • ${door.totalEdgePieces} edges`}
