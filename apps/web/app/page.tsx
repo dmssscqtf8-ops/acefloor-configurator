@@ -171,20 +171,34 @@ export default function Page() {
       ))}
 
       <main>
-        <section className="page-shell page-intro">
-          <div className="eyebrow">AceFloor Premium</div>
-          <h1 className="page-intro-title">
-            Configurateur de tuiles de garage modulaires pour projets haut de gamme
-          </h1>
-          <p className="page-intro-copy">
-            AceFloor aide a projeter un garage, un showroom ou un atelier avec un
-            vrai contenu utile pour la vente: comparaison de gammes, motifs de pose,
-            palette de couleurs et estimatif rapide a partir du plan.
-          </p>
-          <div className="tag-row page-intro-tags">
-            <span className="tag">Garages residentiels</span>
-            <span className="tag">Showrooms automobiles</span>
-            <span className="tag">Ateliers et espaces speciaux</span>
+        <section className="page-shell page-intro page-intro--compact">
+          <div className="page-intro-grid page-intro-grid--compact">
+            <div>
+              <div className="eyebrow">AceFloor Premium</div>
+              <h1 className="page-intro-title">
+                Configurateur de tuiles de garage modulaires premium
+              </h1>
+              <p className="page-intro-copy">
+                Dessine un garage, un showroom ou un atelier, compare les gammes
+                AceFloor et sors un estimatif rapide sans ralentir la vente.
+              </p>
+              <div className="tag-row page-intro-tags">
+                <span className="tag">Garages residentiels</span>
+                <span className="tag">Showrooms automobiles</span>
+                <span className="tag">Ateliers specialises</span>
+              </div>
+            </div>
+
+            <div className="page-intro-brand">
+              <img
+                src="/media/branding/acefloor-gold-logo.png"
+                alt="AceFloor"
+                className="page-intro-brand-image"
+              />
+              <p className="page-intro-brand-copy">
+                Outil de vente, projection 2D et estimatif rapide dans une meme interface.
+              </p>
+            </div>
           </div>
         </section>
 

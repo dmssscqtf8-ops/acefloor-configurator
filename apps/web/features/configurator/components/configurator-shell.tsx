@@ -911,24 +911,12 @@ export function ConfiguratorShell({
         <div>
           <div className="eyebrow">Configurateur AceFloor</div>
           <h2 id="configurator-heading" className="workspace-title">
-            Configurateur interactif de tuiles de garage modulaires
+            Plan interactif et estimation chantier
           </h2>
           <p className="workspace-copy">
-            Dessine ton garage, showroom ou atelier directement sur le plan. Les
-            presets servent de point de depart, puis tu peux personnaliser tuile
-            par tuile pour comparer les gammes AceFloor et estimer plus vite ton projet.
+            Dessine le plan, ajuste les ouvertures et sors un estimatif clair
+            sans quitter le configurateur.
           </p>
-        </div>
-
-        <div className="workspace-aside">
-          <div className="workspace-brandmark">
-            <img
-              src="/media/branding/acefloor-gold-logo.png"
-              alt="AceFloor"
-              className="workspace-brandmark-image"
-            />
-          </div>
-
         </div>
       </section>
 
