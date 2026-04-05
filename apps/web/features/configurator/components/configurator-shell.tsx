@@ -909,14 +909,32 @@ export function ConfiguratorShell({
     >
       <section className="workspace-header">
         <div>
-          <div className="eyebrow">Configurateur AceFloor</div>
+          <div className="eyebrow">Mode chantier</div>
           <h2 id="configurator-heading" className="workspace-title">
-            Plan interactif et estimation chantier
+            Plan, coupes et estimation chantier
           </h2>
           <p className="workspace-copy">
-            Dessine le plan, ajuste les ouvertures et sors un estimatif clair
-            sans quitter le configurateur.
+            Trace le plan, ajuste les ouvertures et sors un estimatif clair
+            sans quitter l'outil.
           </p>
+          <div className="workspace-header-metrics">
+            <div className="workspace-header-chip">
+              <span>Gamme</span>
+              <strong>{selectedProduct.name}</strong>
+            </div>
+            <div className="workspace-header-chip">
+              <span>Format</span>
+              <strong>
+                {selectedProduct.tileWidthIn}" x {selectedProduct.tileHeightIn}"
+              </strong>
+            </div>
+            <div className="workspace-header-chip">
+              <span>Chantier</span>
+              <strong>
+                {estimate.installTiles} tuiles • {estimate.garageDoorEdgeTotalPieces} edges
+              </strong>
+            </div>
+          </div>
         </div>
       </section>
 

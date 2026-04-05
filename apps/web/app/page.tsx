@@ -172,32 +172,37 @@ export default function Page() {
 
       <main>
         <section className="page-shell page-intro page-intro--compact">
-          <div className="page-intro-grid page-intro-grid--compact">
-            <div>
-              <div className="eyebrow">AceFloor Premium</div>
+          <div className="page-intro-rail">
+            <div className="page-intro-copyblock">
+              <div className="page-intro-topline">
+                <div className="eyebrow">AceFloor Premium</div>
+                <span className="page-intro-caption">Configurateur orienté vente</span>
+              </div>
               <h1 className="page-intro-title">
-                Configurateur de tuiles de garage modulaires premium
+                Configurateur de tuiles de garage AceFloor
               </h1>
               <p className="page-intro-copy">
-                Dessine un garage, un showroom ou un atelier, compare les gammes
-                AceFloor et sors un estimatif rapide sans ralentir la vente.
+                Dessine le plan, compare les gammes et chiffre un projet premium
+                en quelques clics, sans ralentir la vente.
               </p>
               <div className="tag-row page-intro-tags">
-                <span className="tag">Garages residentiels</span>
-                <span className="tag">Showrooms automobiles</span>
-                <span className="tag">Ateliers specialises</span>
+                <span className="tag">Residentiel</span>
+                <span className="tag">Showroom auto</span>
+                <span className="tag">Atelier specialise</span>
               </div>
             </div>
 
-            <div className="page-intro-brand">
-              <img
-                src="/media/branding/acefloor-gold-logo.png"
-                alt="AceFloor"
-                className="page-intro-brand-image"
-              />
-              <p className="page-intro-brand-copy">
-                Outil de vente, projection 2D et estimatif rapide dans une meme interface.
-              </p>
+            <div className="page-intro-side">
+              <div className="page-intro-logo-lockup">
+                <img
+                  src="/media/branding/acefloor-gold-logo.png"
+                  alt="AceFloor"
+                  className="page-intro-brand-image"
+                />
+                <p className="page-intro-brand-copy">
+                  Projection 2D, calcul chantier et brief client dans une meme interface.
+                </p>
+              </div>
             </div>
           </div>
         </section>
