@@ -1230,10 +1230,12 @@ function DimensionField(props: DimensionFieldProps) {
 
     return (
       <div className="field field--dimension">
-        <label>{props.label}</label>
         <div className="dimension-field">
-          <div className="dimension-field-summary">
-            {formatFeetAndInchesLabel(props.value, props.min ?? 1)}
+          <div className="dimension-field-head">
+            <label>{props.label}</label>
+            <div className="dimension-field-summary">
+              {formatFeetAndInchesLabel(props.value, props.min ?? 1)}
+            </div>
           </div>
           <div className="dimension-stepper-grid">
             <DimensionPartStepper
