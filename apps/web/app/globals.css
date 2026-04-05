@@ -1361,6 +1361,26 @@ select {
   font-size: 18px;
 }
 
+.quote-panel {
+  border-color: rgba(210, 161, 58, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(210, 161, 58, 0.12), transparent 34%),
+    rgba(16, 20, 28, 0.96);
+}
+
+.quote-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quote-metric--total {
+  border-color: rgba(210, 161, 58, 0.28);
+  background: rgba(210, 161, 58, 0.12);
+}
+
+.quote-metric--total .summary-metric-value {
+  color: #f1d28d;
+}
+
 .workspace-panel--controls .section-title,
 .workspace-panel--catalog .section-title,
 .workspace-panel--catalog .summary-title {

@@ -225,7 +225,7 @@ export function ConfiguratorShell({
   const projectTotal = Number(
     (estimate.totalEstimate + installationSubtotal).toFixed(2),
   );
-  const projectBrief = buildProjectBrief({
+  const projectQuote = buildProjectQuote({
     roomWidth,
     roomLength,
     unit,
@@ -249,6 +249,7 @@ export function ConfiguratorShell({
     garageDoorWidth,
     garageDoorOffset,
     obstaclesCount: obstacles.length,
+    materialPricePerSqFt: selectedProduct.pricePerSqFt,
   });
   const controlsSummary = [
     `${formatDimensionValue(roomWidth, unit)} x ${formatDimensionValue(roomLength, unit)}`,
@@ -292,14 +293,14 @@ export function ConfiguratorShell({
     setSelectedProductId,
   ]);
 
-  const handleCopyProjectBrief = useCallback(async () => {
+  const handleCopyProjectQuote = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(projectBrief);
+      await navigator.clipboard.writeText(projectQuote);
       setCopyState("copied");
     } catch {
       setCopyState("error");
     }
-  }, [projectBrief]);
+  }, [projectQuote]);
 
   const controlsPanelContent = (
     <div className="section-stack">
@@ -826,6 +827,42 @@ export function ConfiguratorShell({
         </section>
       ) : null}
 
+      <section className="summary-panel summary-panel--compact quote-panel">
+        <h2 className="summary-title">Soumission</h2>
+        <div className="summary-grid quote-grid">
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Materiau</span>
+            <strong className="summary-metric-value">
+              {formatCurrency(estimate.tileSubtotal)}
+            </strong>
+          </div>
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Pose</span>
+            <strong className="summary-metric-value">
+              {includeInstallation ? formatCurrency(installationSubtotal) : "Option"}
+            </strong>
+          </div>
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Boites</span>
+            <strong className="summary-metric-value">
+              {estimate.boxesRequired}
+            </strong>
+          </div>
+          <div className="summary-metric compact quote-metric--total">
+            <span className="summary-metric-label">Total</span>
+            <strong className="summary-metric-value">
+              {formatCurrency(projectTotal)}
+            </strong>
+          </div>
+        </div>
+        <p className="summary-note">
+          Base de calcul : <strong>{estimate.billableAreaSqFt.toFixed(1)} pi²</strong>
+          {" "}facturable • <strong>{estimate.totalTiles} tuiles</strong> •{" "}
+          <strong>{formatCurrency(selectedProduct.pricePerSqFt)} / pi²</strong> materiau
+          • taxes non incluses.
+        </p>
+      </section>
+
       <section className="summary-panel summary-panel--compact">
         <h2 className="summary-title">Details chantier</h2>
         <div className="summary-grid">
@@ -871,13 +908,13 @@ export function ConfiguratorShell({
           <button
             type="button"
             className="button primary"
-            onClick={handleCopyProjectBrief}
+            onClick={handleCopyProjectQuote}
           >
             {copyState === "copied"
-              ? "Brief copie"
+              ? "Soumission copiee"
               : copyState === "error"
                 ? "Copie impossible"
-                : "Copier le brief"}
+                : "Copier la soumission"}
           </button>
           <button
             type="button"
@@ -1445,7 +1482,7 @@ function CompactDimensionPartStepper(props: DimensionPartStepperProps) {
   );
 }
 
-function buildProjectBrief(input: {
+function buildProjectQuote(input: {
   roomWidth: number;
   roomLength: number;
   unit: string;
@@ -1469,28 +1506,29 @@ function buildProjectBrief(input: {
   garageDoorWidth: number;
   garageDoorOffset: number;
   obstaclesCount: number;
+  materialPricePerSqFt: number;
 }): string {
   return [
-    `Projet ${formatDimensionValue(input.roomWidth, input.unit)} x ${formatDimensionValue(input.roomLength, input.unit)}`,
+    `Soumission AceFloor`,
+    `Projet: ${formatDimensionValue(input.roomWidth, input.unit)} x ${formatDimensionValue(input.roomLength, input.unit)}`,
     `Gamme: ${input.productName} (${input.productPositioning})`,
-    `Motif: ${getLayoutLabel(input.layoutMode)}`,
-    `Palette: ${input.primaryColor}${input.secondaryColor ? ` / ${input.secondaryColor}` : ""}`,
-    `Surface utile: ${input.estimateAreaSqFt.toFixed(1)} pi²`,
+    `Motif / palette: ${getLayoutLabel(input.layoutMode)} • ${input.primaryColor}${input.secondaryColor ? ` / ${input.secondaryColor}` : ""}`,
+    `Surface reelle: ${input.estimateAreaSqFt.toFixed(1)} pi²`,
     `Surface facturable: ${input.billableAreaSqFt.toFixed(1)} pi²`,
-    `Pose nette: ${input.installTiles}`,
-    `Coupes plan: ${input.cutTiles}`,
-    `Commande totale: ${input.totalTiles}`,
-    `Boites estimees: ${input.boxesRequired}`,
-    `Materiau: ${formatCurrency(input.materialSubtotal)}`,
+    `Quantite: ${input.totalTiles} tuiles • ${input.boxesRequired} boites`,
+    `Coupes: ${input.cutTiles}`,
+    `Prix materiau: ${formatCurrency(input.materialPricePerSqFt)} / pi²`,
+    `Sous-total materiau: ${formatCurrency(input.materialSubtotal)}`,
     input.installationIncluded
-      ? `Pose: ${formatCurrency(input.installationSubtotal)}`
+      ? `Sous-total pose: ${formatCurrency(input.installationSubtotal)}`
       : "Pose: non incluse",
-    `Complexite: ${input.complexityLabel}`,
-    `Total projet: ${formatCurrency(input.projectTotal)}`,
+    `Total avant taxes: ${formatCurrency(input.projectTotal)}`,
+    `Complexite chantier: ${input.complexityLabel}`,
     input.garageDoorEnabled
-      ? `Porte de garage: oui (${input.garageDoorWidth} ${input.unit}, offset ${input.garageDoorOffset} ${input.unit})`
+      ? `Porte de garage principale: oui (${input.garageDoorWidth} ${input.unit}, offset ${input.garageDoorOffset} ${input.unit})`
       : "Porte de garage: non",
     `Decrochements: ${input.obstaclesCount}`,
+    `Taxes non incluses.`,
   ].join(" | ");
 }
 
