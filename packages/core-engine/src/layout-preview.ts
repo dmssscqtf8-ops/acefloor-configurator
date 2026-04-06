@@ -190,25 +190,37 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
   const rightOuterColumnCount = 1;
   const rightSecondaryInsetColumns =
     lastColumnWidthIn < input.tileWidthIn - 0.001 ? 2 : 1;
-  const rows = Math.max(1, Math.ceil(roomLengthIn / input.tileHeightIn));
+  const mainLengthIn = Math.max(
+    roomLengthIn - (garageDoor.enabled ? garageDoor.setbackDepthIn : 0),
+    0,
+  );
+  const fullMainRows = Math.floor(mainLengthIn / input.tileHeightIn);
+  const mainTopRemainderIn = Math.max(
+    mainLengthIn - fullMainRows * input.tileHeightIn,
+    0,
+  );
+  const hasMainTopRemainder = mainTopRemainderIn > 0.001;
+  const mainRows =
+    garageDoor.enabled
+      ? mainLengthIn <= 0.001
+        ? 0
+        : fullMainRows + (hasMainTopRemainder ? 1 : 0)
+      : Math.max(1, Math.ceil(roomLengthIn / input.tileHeightIn));
+  const rows = Math.max(mainRows + (garageDoor.enabled ? 1 : 0), 1);
   const topSecondRow = 1;
-  const bottomOuterRow = Math.max(rows - 1, 0);
-  const bottomSecondRow = Math.max(rows - 2, 0);
+  const bottomOuterRow = garageDoor.enabled
+    ? mainRows
+    : Math.max(rows - 1, 0);
+  const bottomSecondRow = garageDoor.enabled
+    ? Math.max(mainRows - 1, 0)
+    : Math.max(rows - 2, 0);
   const cells: PreviewCell[] = [];
-  let excludedAreaIn2 = 0;
+  let excludedAreaIn2 = garageDoor.enabled
+    ? garageDoor.openingWidthIn * garageDoor.setbackDepthIn
+    : 0;
   let usableAreaIn2 = 0;
 
   const exclusionRects: ExclusionRect[] = [
-    ...(garageDoor.enabled && garageDoor.setbackDepthIn > 0
-      ? [
-          {
-            xIn: garageDoor.xIn,
-            yIn: garageDoor.yIn,
-            widthIn: garageDoor.openingWidthIn,
-            heightIn: garageDoor.setbackDepthIn,
-          },
-        ]
-      : []),
     ...(cutout.widthIn > 0 && cutout.lengthIn > 0
       ? [
           {
@@ -230,10 +242,86 @@ export function buildRoomPreview(input: RoomPreviewInput): RoomPreview {
     ...obstacles,
   ];
 
-  for (let row = 0; row < rows; row += 1) {
-    const yIn = row * input.tileHeightIn;
-    const remainingHeight = Math.max(roomLengthIn - yIn, 0);
-    const heightIn = Math.min(input.tileHeightIn, remainingHeight);
+  if (garageDoor.enabled && garageDoor.setbackDepthIn > 0) {
+    const frontSegments = [
+      { startX: 0, endX: garageDoor.xIn },
+      {
+        startX: garageDoor.xIn + garageDoor.openingWidthIn,
+        endX: roomWidthIn,
+      },
+    ].filter((segment) => segment.endX - segment.startX > 0.001);
+
+    for (let column = 0; column < columns; column += 1) {
+      const columnXIn = column * input.tileWidthIn;
+      const columnWidthIn = Math.min(
+        input.tileWidthIn,
+        Math.max(roomWidthIn - columnXIn, 0),
+      );
+
+      frontSegments.forEach((segment) => {
+        const frontCellXIn = Math.max(columnXIn, segment.startX);
+        const frontCellEndXIn = Math.min(
+          columnXIn + columnWidthIn,
+          segment.endX,
+        );
+        const frontCellWidthIn = frontCellEndXIn - frontCellXIn;
+
+        if (frontCellWidthIn <= 0.001) return;
+
+        const excludedAreaIn2Ref = { value: excludedAreaIn2 };
+        const usableAreaIn2Ref = { value: usableAreaIn2 };
+
+        pushPreviewCell({
+          cells,
+          exclusionRects,
+          roomWidthIn,
+          roomLengthIn,
+          totalColumns: columns,
+          leftOuterColumnCount,
+          rightOuterColumnCount,
+          rightSecondaryInsetColumns,
+          topSecondRow,
+          bottomOuterRow,
+          bottomSecondRow,
+          tileWidthIn: input.tileWidthIn,
+          tileHeightIn: input.tileHeightIn,
+          pattern: input.pattern,
+          row: mainRows,
+          patternRow: mainRows,
+          column,
+          xIn: frontCellXIn,
+          yIn: garageDoor.yIn,
+          widthIn: frontCellWidthIn,
+          heightIn: garageDoor.setbackDepthIn,
+          excludedAreaIn2Ref,
+          usableAreaIn2Ref,
+        });
+
+        excludedAreaIn2 = excludedAreaIn2Ref.value;
+        usableAreaIn2 = usableAreaIn2Ref.value;
+      });
+    }
+  }
+
+  for (let row = 0; row < mainRows; row += 1) {
+    const yIn =
+      garageDoor.enabled && hasMainTopRemainder
+        ? row === 0
+          ? 0
+          : mainTopRemainderIn + (row - 1) * input.tileHeightIn
+        : row * input.tileHeightIn;
+    const heightIn =
+      garageDoor.enabled && hasMainTopRemainder
+        ? row === 0
+          ? mainTopRemainderIn
+          : input.tileHeightIn
+        : Math.min(
+            input.tileHeightIn,
+            Math.max(
+              (garageDoor.enabled ? mainLengthIn : roomLengthIn) - yIn,
+              0,
+            ),
+          );
 
     for (let column = 0; column < columns; column += 1) {
       const xIn = column * input.tileWidthIn;
