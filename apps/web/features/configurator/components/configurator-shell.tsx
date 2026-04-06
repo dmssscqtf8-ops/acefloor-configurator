@@ -962,14 +962,16 @@ export function ConfiguratorShell({
 
   const desktopToolDock = !isMobileLayout ? (
     <aside className="workspace-tool-column" aria-label="Outils du plan">
-      <div className="tool-rail tool-rail--stacked">
-        {toolRailButtonItems}
-      </div>
-      {colorToolPanelContent ? (
-        <div className="canvas-floating-panel canvas-floating-panel--inline">
-          {colorToolPanelContent}
+      <div className="workspace-tool-shell">
+        {colorToolPanelContent ? (
+          <div className="workspace-tool-popover canvas-floating-panel">
+            {colorToolPanelContent}
+          </div>
+        ) : null}
+        <div className="tool-rail tool-rail--stacked">
+          {toolRailButtonItems}
         </div>
-      ) : null}
+      </div>
     </aside>
   ) : null;
 

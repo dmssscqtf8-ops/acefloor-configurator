@@ -745,8 +745,25 @@ textarea {
 
 .workspace-tool-column {
   display: grid;
-  gap: 12px;
   align-content: start;
+  position: relative;
+  min-width: 0;
+  z-index: 4;
+}
+
+.workspace-tool-shell {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.workspace-tool-popover {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 12px);
+  width: 240px;
+  z-index: 6;
 }
 
 .workspace-inline-card {
@@ -2400,6 +2417,11 @@ textarea {
 
   .workspace-toolbar-actions .button {
     flex: 1 1 180px;
+  }
+
+  .workspace-tool-popover {
+    right: calc(100% + 10px);
+    width: 220px;
   }
 
   .canvas-overlay-dock {
