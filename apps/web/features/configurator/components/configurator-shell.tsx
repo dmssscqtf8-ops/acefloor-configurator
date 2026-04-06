@@ -6,7 +6,10 @@ import {
   computeEstimateFromPreview,
   formatCurrency,
 } from "@acefloor/core-engine";
-import { catalogProducts } from "../data/mock-catalog";
+import {
+  catalogProducts,
+  getCatalogProductHeroImage,
+} from "../data/mock-catalog";
 import { useConfiguratorStore } from "../store/use-configurator-store";
 import { RoomCanvas } from "./room-canvas";
 
@@ -858,7 +861,7 @@ export function ConfiguratorShell({
     </>
   );
 
-  const desktopCanvasDock = !isMobileLayout ? (
+  const desktopSetupDock = !isMobileLayout ? (
     <aside className="canvas-utility-dock" aria-label="Configuration rapide">
       <section className="workspace-inline-card">
         <div className="workspace-card-head workspace-card-head--tight">
@@ -954,48 +957,24 @@ export function ConfiguratorShell({
           </p>
         )}
       </section>
+    </aside>
+  ) : null;
 
-      <section className="workspace-inline-card workspace-inline-card--tools">
-        <div className="workspace-card-head workspace-card-head--tight">
-          <span className="workspace-card-kicker">Outils</span>
-          <strong>Peinture et export</strong>
+  const desktopToolDock = !isMobileLayout ? (
+    <aside className="workspace-tool-column" aria-label="Outils du plan">
+      <div className="tool-rail tool-rail--stacked">
+        {toolRailButtonItems}
+      </div>
+      {colorToolPanelContent ? (
+        <div className="canvas-floating-panel canvas-floating-panel--inline">
+          {colorToolPanelContent}
         </div>
-        <div className="tool-rail tool-rail--inline" aria-label="Outils du plan">
-          {toolRailButtonItems}
-        </div>
-        {colorToolPanelContent ? (
-          <div className="canvas-floating-panel canvas-floating-panel--inline">
-            {colorToolPanelContent}
-          </div>
-        ) : null}
-      </section>
+      ) : null}
     </aside>
   ) : null;
 
   const catalogPanelContent = (
     <div className="section-stack">
-      {!isMobileLayout ? (
-        <section>
-          <h2 className="section-title">Gamme</h2>
-          <div className="catalog-list catalog-list--simple">
-            {orderedProducts.map((product, index) => (
-              <button
-                key={product.id}
-                type="button"
-                className={`catalog-choice${
-                  product.id === selectedProductId ? " active" : ""
-                }`}
-                onClick={() => handleProductSelection(product.id)}
-              >
-                <span className="catalog-choice-index">{index + 1}.</span>
-                <span className="catalog-choice-name">{product.name}</span>
-                <span className="catalog-choice-meta">{product.tileWeightGrams} g</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
       <section className="summary-panel summary-panel--compact quote-panel">
         <h2 className="summary-title">Soumission</h2>
         <div className="quote-option">
@@ -1116,85 +1095,72 @@ export function ConfiguratorShell({
           <strong>Sens d'installation :</strong> {installationDirectionNote}
         </p>
       </section>
-
-      <section>
-        <h2 className="section-title">Actions commerciales</h2>
-        <div className="action-row">
-          <button
-            type="button"
-            className="button primary"
-            onClick={handleCopyProjectQuote}
-          >
-            {copyState === "copied"
-              ? "Soumission copiee"
-              : copyState === "error"
-                ? "Copie impossible"
-                : "Copier la soumission"}
-          </button>
-          <button
-            type="button"
-            className="button"
-            onClick={() => setExportRequestId((current) => current + 1)}
-          >
-            Export image
-          </button>
-          <button
-            type="button"
-            className="button"
-            onClick={() => {
-              clearPaintedTiles();
-              clearObstacles();
-              setClearMeasureRequestId((current) => current + 1);
-            }}
-          >
-            Reset projet
-          </button>
-        </div>
-      </section>
     </div>
   );
+
+  const desktopWorkbenchShowcase = !isMobileLayout ? (
+    <div className="paint-workbench-showcase">
+      <div className="paint-overview-card">
+        <span className="workspace-card-kicker">Apercu 2D</span>
+        <strong>
+          {selectedProduct.name} • {preview.columns} x {preview.rows} tuiles
+        </strong>
+        <p>
+          {garageDoorEnabled
+            ? `Porte garage • seuil edge au bas • ${garageDoorWidth} ${unit}`
+            : "Sans porte de garage principale"}
+        </p>
+        <div className="paint-overview-swatches" aria-label="Couleurs actives">
+          {[primaryColor, secondaryColor].filter(Boolean).map((color, index) => (
+            <span
+              key={`${color}-${index}`}
+              className="paint-overview-swatch"
+              style={{ backgroundColor: getColorHex(color) }}
+              title={color}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="product-showcase-strip" aria-label="Gammes AceFloor">
+        {orderedProducts.map((product) => {
+          const preferredColor = product.availableColors.includes(primaryColor)
+            ? primaryColor
+            : product.availableColors[0];
+          const productMedia =
+            product.mediaByColor?.[preferredColor] ?? getCatalogProductHeroImage(product);
+
+          return (
+            <button
+              key={`showcase-${product.id}`}
+              type="button"
+              className={`product-showcase-card${
+                product.id === selectedProductId ? " active" : ""
+              }`}
+              onClick={() => handleProductSelection(product.id)}
+            >
+              <span className="product-showcase-kicker">{product.name}</span>
+              <span className="product-showcase-weight">{product.tileWeightGrams} g</span>
+              <span className="product-showcase-media">
+                <img src={productMedia} alt={product.name} />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
 
   return (
     <section
       className="page-shell page-shell--workspace"
       aria-labelledby="configurator-heading"
     >
-      <section className="workspace-header">
-        <div>
-          <div className="eyebrow">Mode chantier</div>
-          <h2 id="configurator-heading" className="workspace-title">
-            Plan, coupes et estimation chantier
-          </h2>
-          <p className="workspace-copy">
-            Trace le plan, ajuste les ouvertures et sors un estimatif clair
-            sans quitter l'outil.
-          </p>
-          <div className="workspace-header-metrics">
-            <div className="workspace-header-chip">
-              <span>Gamme</span>
-              <strong>{selectedProduct.name}</strong>
-            </div>
-            <div className="workspace-header-chip">
-              <span>Format</span>
-              <strong>
-                {selectedProduct.tileWidthIn}" x {selectedProduct.tileHeightIn}"
-              </strong>
-            </div>
-            <div className="workspace-header-chip">
-              <span>Chantier</span>
-              <strong>
-                {estimate.installTiles} tuiles • {estimate.garageDoorEdgeTotalPieces} edges
-              </strong>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="workspace-main">
         <section className="canvas-panel canvas-panel--workspace workspace-panel workspace-panel--canvas">
           <div className="canvas-toolbar canvas-toolbar--workspace">
             <div>
-              <h2 className="section-title" style={{ marginBottom: 6 }}>
+              <h2 id="configurator-heading" className="section-title" style={{ marginBottom: 6 }}>
                 Plan de travail
               </h2>
               <p className="muted-copy" style={{ margin: 0 }}>
@@ -1202,114 +1168,147 @@ export function ConfiguratorShell({
               </p>
             </div>
 
-            <div className="mode-switch">
-              <span className="mode-pill active">2D</span>
-              <span className="mode-pill">3D</span>
+            <div className="workspace-toolbar-actions">
+              <button
+                type="button"
+                className="button primary button--sharp"
+                onClick={handleCopyProjectQuote}
+              >
+                {copyState === "copied"
+                  ? "Brief copie"
+                  : copyState === "error"
+                    ? "Copie impossible"
+                    : "Copier le brief"}
+              </button>
+              <button
+                type="button"
+                className="button button--sharp"
+                onClick={() => setExportRequestId((current) => current + 1)}
+              >
+                Export image
+              </button>
+              <button
+                type="button"
+                className="button button--sharp"
+                onClick={() => {
+                  clearPaintedTiles();
+                  clearObstacles();
+                  setClearMeasureRequestId((current) => current + 1);
+                }}
+              >
+                Reset projet
+              </button>
             </div>
           </div>
 
           <div className="paint-workbench">
-            <div className="workspace-card-head workspace-card-head--tight">
-              <span className="workspace-card-kicker">Palette</span>
-              <strong>
-                {isMobileLayout ? "Palette, gamme et dimensions" : "Dessin libre et presets"}
-              </strong>
-            </div>
+            <div className="paint-workbench-shell">
+              <div className="paint-workbench-primary">
+                <div className="workspace-card-head workspace-card-head--tight">
+                  <span className="workspace-card-kicker">Palette</span>
+                  <strong>
+                    {isMobileLayout ? "Palette, gamme et dimensions" : "Dessin libre et presets"}
+                  </strong>
+                </div>
 
-            {isMobileLayout ? (
-              <div className="mobile-workbench-stack">
-                <section className="mobile-workbench-card">
-                  <div className="mobile-workbench-head">
-                    <span className="workspace-card-kicker">Tuile</span>
-                    <strong>{selectedProduct.name}</strong>
-                  </div>
-                  <div className="mobile-product-grid">
-                    {orderedProducts.map((product) => (
-                      <button
-                        key={`mobile-product-${product.id}`}
-                        type="button"
-                        className={`mobile-product-pill${
-                          product.id === selectedProductId ? " active" : ""
-                        }`}
-                        onClick={() => handleProductSelection(product.id)}
-                      >
-                        <span>{product.name}</span>
-                        <small>{product.tileWeightGrams} g</small>
-                      </button>
-                    ))}
-                  </div>
-                </section>
+                {isMobileLayout ? (
+                  <div className="mobile-workbench-stack">
+                    <section className="mobile-workbench-card">
+                      <div className="mobile-workbench-head">
+                        <span className="workspace-card-kicker">Tuile</span>
+                        <strong>{selectedProduct.name}</strong>
+                      </div>
+                      <div className="mobile-product-grid">
+                        {orderedProducts.map((product) => (
+                          <button
+                            key={`mobile-product-${product.id}`}
+                            type="button"
+                            className={`mobile-product-pill${
+                              product.id === selectedProductId ? " active" : ""
+                            }`}
+                            onClick={() => handleProductSelection(product.id)}
+                          >
+                            <span>{product.name}</span>
+                            <small>{product.tileWeightGrams} g</small>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
 
-                <section className="mobile-workbench-card">
-                  <div className="mobile-workbench-head">
-                    <span className="workspace-card-kicker">Garage</span>
-                    <strong>{formatDimensionValue(roomWidth, unit)} x {formatDimensionValue(roomLength, unit)}</strong>
+                    <section className="mobile-workbench-card">
+                      <div className="mobile-workbench-head">
+                        <span className="workspace-card-kicker">Garage</span>
+                        <strong>{formatDimensionValue(roomWidth, unit)} x {formatDimensionValue(roomLength, unit)}</strong>
+                      </div>
+                      <div className="mobile-unit-strip" role="group" aria-label="Unite">
+                        {unitOptions.map((option) => (
+                          <button
+                            key={`mobile-unit-${option.value}`}
+                            type="button"
+                            className={`mobile-unit-pill${unit === option.value ? " active" : ""}`}
+                            onClick={() => setUnit(option.value)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mobile-dimension-grid">
+                        <CompactDimensionField
+                          id="mobile-room-width"
+                          label="Largeur"
+                          unit={unit}
+                          value={roomWidth}
+                          min={1}
+                          onChange={setRoomWidth}
+                        />
+                        <CompactDimensionField
+                          id="mobile-room-length"
+                          label="Longueur"
+                          unit={unit}
+                          value={roomLength}
+                          min={1}
+                          onChange={setRoomLength}
+                        />
+                      </div>
+                    </section>
                   </div>
-                  <div className="mobile-unit-strip" role="group" aria-label="Unite">
-                    {unitOptions.map((option) => (
-                      <button
-                        key={`mobile-unit-${option.value}`}
-                        type="button"
-                        className={`mobile-unit-pill${unit === option.value ? " active" : ""}`}
-                        onClick={() => setUnit(option.value)}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mobile-dimension-grid">
-                    <CompactDimensionField
-                      id="mobile-room-width"
-                      label="Largeur"
-                      unit={unit}
-                      value={roomWidth}
-                      min={1}
-                      onChange={setRoomWidth}
-                    />
-                    <CompactDimensionField
-                      id="mobile-room-length"
-                      label="Longueur"
-                      unit={unit}
-                      value={roomLength}
-                      min={1}
-                      onChange={setRoomLength}
-                    />
-                  </div>
-                </section>
+                ) : null}
+
+                <div className="preset-strip">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      className={`preset-pill${
+                        layoutMode === preset.value ? " active" : ""
+                      }`}
+                      onClick={() =>
+                        setLayoutMode(
+                          preset.value as "solid" | "checker" | "border" | "manual",
+                        )
+                      }
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="paint-meta">
+                  <span className="tag">Motif: {getLayoutLabel(layoutMode)}</span>
+                  <span className="tag">
+                    Palette: {primaryColor}{secondaryColor ? ` / ${secondaryColor}` : ""}
+                  </span>
+                  <span className="tag">Plan: {paintedTileCount}</span>
+                </div>
               </div>
-            ) : null}
 
-            <div className="preset-strip">
-              {presets.map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  className={`preset-pill${
-                    layoutMode === preset.value ? " active" : ""
-                  }`}
-                  onClick={() =>
-                    setLayoutMode(
-                      preset.value as "solid" | "checker" | "border" | "manual",
-                    )
-                  }
-                >
-                  {preset.label}
-                </button>
-              ))}
+              {desktopWorkbenchShowcase}
             </div>
-
-            <div className="paint-meta">
-              <span className="tag">Motif: {getLayoutLabel(layoutMode)}</span>
-              <span className="tag">
-                Palette: {primaryColor}{secondaryColor ? ` / ${secondaryColor}` : ""}
-              </span>
-              <span className="tag">Plan: {paintedTileCount}</span>
-            </div>
-
           </div>
 
           <div className="canvas-workspace-shell">
-            {desktopCanvasDock}
+            {desktopSetupDock}
+            {desktopToolDock}
             <div className="canvas-surface">
               <RoomCanvas
                 roomWidth={roomWidth}
