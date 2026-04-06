@@ -38,7 +38,7 @@ type ConfiguratorShellProps = {
   initialProductId?: string;
 };
 
-const DELIVERY_ORIGIN_ADDRESS = "1335 QC-263 Nord, Princeville, Quebec";
+const DELIVERY_ORIGIN_ADDRESS = "1335 Route 263 Nord, Princeville, Quebec, Canada";
 const DELIVERY_RATE_PER_KM = 1.5;
 
 type DeliveryQuoteState =
@@ -49,6 +49,7 @@ type DeliveryQuoteState =
       distanceKm: number;
       transportSubtotal: number;
       destinationAddress: string;
+      distanceSource: "route" | "estimated";
     }
   | { status: "error"; message: string };
 
@@ -244,6 +245,7 @@ export function ConfiguratorShell({
               destinationAddress: string;
               distanceKm: number;
               transportSubtotal: number;
+              distanceSource?: "route" | "estimated";
             }
           | { error?: string };
 
@@ -260,6 +262,7 @@ export function ConfiguratorShell({
           distanceKm: payload.distanceKm,
           transportSubtotal: payload.transportSubtotal,
           destinationAddress: payload.destinationAddress,
+          distanceSource: payload.distanceSource ?? "route",
         });
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -338,6 +341,8 @@ export function ConfiguratorShell({
     deliverySubtotal,
     deliveryDistanceKm:
       deliveryQuote.status === "ready" ? deliveryQuote.distanceKm : null,
+    deliveryDistanceSource:
+      deliveryQuote.status === "ready" ? deliveryQuote.distanceSource : null,
     deliveryOriginAddress: DELIVERY_ORIGIN_ADDRESS,
     projectTotal,
     totalReady,
@@ -365,7 +370,9 @@ export function ConfiguratorShell({
   const deliveryNote = includeInstallation
     ? "Transport inclus avec la pose partout au Quebec."
     : deliveryQuote.status === "ready"
-      ? `Transport calcule depuis ${DELIVERY_ORIGIN_ADDRESS} jusqu'a ${deliveryQuote.destinationAddress}.`
+      ? deliveryQuote.distanceSource === "estimated"
+        ? `Transport estime depuis ${DELIVERY_ORIGIN_ADDRESS} jusqu'a ${deliveryQuote.destinationAddress}.`
+        : `Transport calcule depuis ${DELIVERY_ORIGIN_ADDRESS} jusqu'a ${deliveryQuote.destinationAddress}.`
       : deliveryQuote.status === "loading"
         ? "Calcul du transport en cours."
         : deliveryQuote.status === "error"
@@ -1723,6 +1730,7 @@ function buildProjectQuote(input: {
   deliveryIncluded: boolean;
   deliverySubtotal: number;
   deliveryDistanceKm: number | null;
+  deliveryDistanceSource: "route" | "estimated" | null;
   deliveryOriginAddress: string;
   projectTotal: number;
   totalReady: boolean;
@@ -1753,7 +1761,7 @@ function buildProjectQuote(input: {
     input.deliveryIncluded
       ? `Transport: inclus avec la pose depuis ${input.deliveryOriginAddress}`
       : input.deliveryDistanceKm !== null
-        ? `Transport: ${formatCurrency(input.deliverySubtotal)} (${input.deliveryDistanceKm.toFixed(1)} km depuis ${input.deliveryOriginAddress})`
+        ? `Transport: ${formatCurrency(input.deliverySubtotal)} (${input.deliveryDistanceKm.toFixed(1)} km${input.deliveryDistanceSource === "estimated" ? " estimes" : ""} depuis ${input.deliveryOriginAddress})`
         : `Transport: calcul requis depuis ${input.deliveryOriginAddress}`,
     input.totalReady
       ? `Total avant taxes: ${formatCurrency(input.projectTotal)}`

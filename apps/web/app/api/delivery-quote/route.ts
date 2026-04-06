@@ -10,6 +10,9 @@ const DELIVERY_RATE_PER_KM = 1.5;
 const GEOCODER_BASE_URL = "https://nominatim.openstreetmap.org/search";
 const GEOCODER_FALLBACK_BASE_URL = "https://photon.komoot.io/api/";
 const ROUTER_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
+const GEOCODER_TIMEOUT_MS = 2500;
+const ROUTER_TIMEOUT_MS = 4000;
+const ESTIMATED_DRIVE_FACTOR = 1.13;
 const REQUEST_HEADERS = {
   "Accept-Language": "fr-CA,fr;q=0.9,en;q=0.6",
   "User-Agent": "AceFloor Configurator/1.0 (delivery quote)",
@@ -19,6 +22,11 @@ type Coordinates = {
   lat: number;
   lon: number;
   label: string;
+};
+
+type DeliveryDistance = {
+  distanceKm: number;
+  source: "route" | "estimated";
 };
 
 export async function POST(request: Request) {
@@ -35,15 +43,18 @@ export async function POST(request: Request) {
 
     const origin = ORIGIN_COORDINATES;
     const destination = await geocodeAddress(address);
-    const distanceKm = await fetchDrivingDistanceKm(origin, destination);
-    const transportSubtotal = roundCurrency(distanceKm * DELIVERY_RATE_PER_KM);
+    const deliveryDistance = await fetchDrivingDistanceKm(origin, destination);
+    const transportSubtotal = roundCurrency(
+      deliveryDistance.distanceKm * DELIVERY_RATE_PER_KM,
+    );
 
     return NextResponse.json({
       originAddress: origin.label,
       destinationAddress: destination.label,
-      distanceKm: roundToOneDecimal(distanceKm),
+      distanceKm: roundToOneDecimal(deliveryDistance.distanceKm),
       transportSubtotal,
       ratePerKm: DELIVERY_RATE_PER_KM,
+      distanceSource: deliveryDistance.source,
     });
   } catch (error) {
     const message =
@@ -59,7 +70,7 @@ async function geocodeAddress(address: string): Promise<Coordinates> {
   const candidates = buildGeocodeCandidates(address);
 
   for (const candidate of candidates) {
-    const match = await geocodeWithNominatim(candidate);
+    const match = await geocodeWithPhoton(candidate);
 
     if (match) {
       return match;
@@ -67,7 +78,7 @@ async function geocodeAddress(address: string): Promise<Coordinates> {
   }
 
   for (const candidate of candidates) {
-    const match = await geocodeWithPhoton(candidate);
+    const match = await geocodeWithNominatim(candidate);
 
     if (match) {
       return match;
@@ -85,12 +96,16 @@ async function geocodeWithNominatim(address: string): Promise<Coordinates | null
     addressdetails: "1",
     countrycodes: "ca",
   });
-  const response = await fetch(`${GEOCODER_BASE_URL}?${params.toString()}`, {
-    headers: REQUEST_HEADERS,
-    cache: "no-store",
-  });
+  const response = await fetchWithTimeout(
+    `${GEOCODER_BASE_URL}?${params.toString()}`,
+    {
+      headers: REQUEST_HEADERS,
+      cache: "no-store",
+    },
+    GEOCODER_TIMEOUT_MS,
+  );
 
-  if (!response.ok) {
+  if (!response?.ok) {
     return null;
   }
 
@@ -118,12 +133,16 @@ async function geocodeWithPhoton(address: string): Promise<Coordinates | null> {
     limit: "1",
     lang: "fr",
   });
-  const response = await fetch(`${GEOCODER_FALLBACK_BASE_URL}?${params.toString()}`, {
-    headers: REQUEST_HEADERS,
-    cache: "no-store",
-  });
+  const response = await fetchWithTimeout(
+    `${GEOCODER_FALLBACK_BASE_URL}?${params.toString()}`,
+    {
+      headers: REQUEST_HEADERS,
+      cache: "no-store",
+    },
+    GEOCODER_TIMEOUT_MS,
+  );
 
-  if (!response.ok) {
+  if (!response?.ok) {
     return null;
   }
 
@@ -167,6 +186,89 @@ async function geocodeWithPhoton(address: string): Promise<Coordinates | null> {
   };
 }
 
+async function fetchDrivingDistanceKm(
+  origin: Coordinates,
+  destination: Coordinates,
+): Promise<DeliveryDistance> {
+  const params = new URLSearchParams({
+    alternatives: "false",
+    overview: "false",
+    steps: "false",
+  });
+  const response = await fetchWithTimeout(
+    `${ROUTER_BASE_URL}/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?${params.toString()}`,
+    {
+      headers: REQUEST_HEADERS,
+      cache: "no-store",
+    },
+    ROUTER_TIMEOUT_MS,
+  );
+
+  if (response?.ok) {
+    const payload = (await response.json()) as {
+      routes?: Array<{ distance?: number }>;
+    };
+    const distanceMeters = payload.routes?.[0]?.distance;
+
+    if (distanceMeters && distanceMeters > 0) {
+      return {
+        distanceKm: distanceMeters / 1000,
+        source: "route",
+      };
+    }
+  }
+
+  return {
+    distanceKm: estimateDrivingDistanceKm(origin, destination),
+    source: "estimated",
+  };
+}
+
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function estimateDrivingDistanceKm(origin: Coordinates, destination: Coordinates) {
+  return roundToOneDecimal(
+    calculateGreatCircleDistanceKm(origin, destination) * ESTIMATED_DRIVE_FACTOR,
+  );
+}
+
+function calculateGreatCircleDistanceKm(origin: Coordinates, destination: Coordinates) {
+  const earthRadiusKm = 6371;
+  const latDelta = toRadians(destination.lat - origin.lat);
+  const lonDelta = toRadians(destination.lon - origin.lon);
+  const originLat = toRadians(origin.lat);
+  const destinationLat = toRadians(destination.lat);
+  const haversine =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(originLat) *
+      Math.cos(destinationLat) *
+      Math.sin(lonDelta / 2) ** 2;
+  const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+
+  return earthRadiusKm * arc;
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
 function buildGeocodeCandidates(address: string) {
   const compactAddress = normalizeSpacing(address);
   const normalizedAddress = normalizeCanadianAddress(compactAddress);
@@ -179,36 +281,6 @@ function buildGeocodeCandidates(address: string) {
   ];
 
   return [...new Set(candidates.map(normalizeSpacing).filter((value) => value.length > 0))];
-}
-
-async function fetchDrivingDistanceKm(origin: Coordinates, destination: Coordinates): Promise<number> {
-  const params = new URLSearchParams({
-    alternatives: "false",
-    overview: "false",
-    steps: "false",
-  });
-  const response = await fetch(
-    `${ROUTER_BASE_URL}/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?${params.toString()}`,
-    {
-      headers: REQUEST_HEADERS,
-      cache: "no-store",
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Le calcul de distance routiere est temporairement indisponible.");
-  }
-
-  const payload = (await response.json()) as {
-    routes?: Array<{ distance?: number }>;
-  };
-  const distanceMeters = payload.routes?.[0]?.distance;
-
-  if (!distanceMeters || distanceMeters <= 0) {
-    throw new Error("Impossible d'etablir le trajet routier pour cette adresse.");
-  }
-
-  return distanceMeters / 1000;
 }
 
 function roundCurrency(value: number) {
