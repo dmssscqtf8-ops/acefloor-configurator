@@ -38,6 +38,20 @@ type ConfiguratorShellProps = {
   initialProductId?: string;
 };
 
+const DELIVERY_ORIGIN_ADDRESS = "1335 QC-263 Nord, Princeville, Quebec";
+const DELIVERY_RATE_PER_KM = 1.5;
+
+type DeliveryQuoteState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | {
+      status: "ready";
+      distanceKm: number;
+      transportSubtotal: number;
+      destinationAddress: string;
+    }
+  | { status: "error"; message: string };
+
 export function ConfiguratorShell({
   initialProductId,
 }: ConfiguratorShellProps) {
@@ -52,6 +66,10 @@ export function ConfiguratorShell({
   const [clearMeasureRequestId, setClearMeasureRequestId] = useState(0);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [includeInstallation, setIncludeInstallation] = useState(false);
+  const [clientAddress, setClientAddress] = useState("");
+  const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuoteState>({
+    status: "idle",
+  });
   const roomWidth = useConfiguratorStore((state) => state.roomWidth);
   const roomLength = useConfiguratorStore((state) => state.roomLength);
   const garageDoorEnabled = useConfiguratorStore((state) => state.garageDoorEnabled);
@@ -195,6 +213,73 @@ export function ConfiguratorShell({
     return () => window.clearTimeout(timeout);
   }, [copyState]);
 
+  useEffect(() => {
+    if (includeInstallation) {
+      setDeliveryQuote({ status: "idle" });
+      return;
+    }
+
+    const trimmedAddress = clientAddress.trim();
+
+    if (trimmedAddress.length < 8) {
+      setDeliveryQuote({ status: "idle" });
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setDeliveryQuote({ status: "loading" });
+
+      try {
+        const response = await fetch("/api/delivery-quote", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ address: trimmedAddress }),
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as
+          | {
+              destinationAddress: string;
+              distanceKm: number;
+              transportSubtotal: number;
+            }
+          | { error?: string };
+
+        if (!response.ok || !("distanceKm" in payload)) {
+          throw new Error(
+            "error" in payload && payload.error
+              ? payload.error
+              : "Impossible de calculer le transport.",
+          );
+        }
+
+        setDeliveryQuote({
+          status: "ready",
+          distanceKm: payload.distanceKm,
+          transportSubtotal: payload.transportSubtotal,
+          destinationAddress: payload.destinationAddress,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        setDeliveryQuote({
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Impossible de calculer le transport.",
+        });
+      }
+    }, 450);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [clientAddress, includeInstallation]);
+
   const preview = buildRoomPreview({
     roomWidth,
     roomLength,
@@ -222,8 +307,13 @@ export function ConfiguratorShell({
         (estimate.billableAreaSqFt * installationPricePerSqFt).toFixed(2),
       )
     : 0;
+  const deliverySubtotal =
+    includeInstallation || deliveryQuote.status !== "ready"
+      ? 0
+      : deliveryQuote.transportSubtotal;
+  const totalReady = includeInstallation || deliveryQuote.status === "ready";
   const projectTotal = Number(
-    (estimate.totalEstimate + installationSubtotal).toFixed(2),
+    (estimate.totalEstimate + installationSubtotal + deliverySubtotal).toFixed(2),
   );
   const projectQuote = buildProjectQuote({
     roomWidth,
@@ -243,7 +333,14 @@ export function ConfiguratorShell({
     materialSubtotal: estimate.tileSubtotal,
     installationIncluded: includeInstallation,
     installationSubtotal,
+    clientAddress,
+    deliveryIncluded: includeInstallation,
+    deliverySubtotal,
+    deliveryDistanceKm:
+      deliveryQuote.status === "ready" ? deliveryQuote.distanceKm : null,
+    deliveryOriginAddress: DELIVERY_ORIGIN_ADDRESS,
     projectTotal,
+    totalReady,
     complexityLabel: estimate.complexityLabel,
     garageDoorEnabled,
     garageDoorWidth,
@@ -260,11 +357,20 @@ export function ConfiguratorShell({
   const commercialSummary = [
     selectedProduct.name,
     `${estimate.boxesRequired} boite${estimate.boxesRequired > 1 ? "s" : ""}`,
-    `${formatCurrency(projectTotal)}`,
+    totalReady ? `${formatCurrency(projectTotal)}` : "transport a calculer",
   ].join(" • ");
   const installationDirectionNote = garageDoorEnabled
     ? "commencer par le edge de la porte de garage principale, puis poser la premiere tuile en bas a gauche. Voir les videos explicatives d'installation."
     : "commencer par la premiere tuile en bas a gauche. Voir les videos explicatives d'installation.";
+  const deliveryNote = includeInstallation
+    ? "Transport inclus avec la pose partout au Quebec."
+    : deliveryQuote.status === "ready"
+      ? `Transport calcule depuis ${DELIVERY_ORIGIN_ADDRESS} jusqu'a ${deliveryQuote.destinationAddress}.`
+      : deliveryQuote.status === "loading"
+        ? "Calcul du transport en cours."
+        : deliveryQuote.status === "error"
+          ? deliveryQuote.message
+          : `Entre l'adresse client pour calculer le transport a ${formatCurrency(DELIVERY_RATE_PER_KM)} / km depuis ${DELIVERY_ORIGIN_ADDRESS}.`;
 
   const handleExportReady = useCallback((dataUrl: string) => {
     const link = document.createElement("a");
@@ -896,6 +1002,16 @@ export function ConfiguratorShell({
             <option value="yes">Oui • 2,00 $ / pi²</option>
           </select>
         </div>
+        <div className="quote-option">
+          <label htmlFor="quote-address">Adresse client</label>
+          <textarea
+            id="quote-address"
+            rows={3}
+            value={clientAddress}
+            onChange={(event) => setClientAddress(event.target.value)}
+            placeholder="Adresse complete du client"
+          />
+        </div>
         <div className="summary-grid quote-grid">
           <div className="summary-metric compact">
             <span className="summary-metric-label">Materiau</span>
@@ -910,18 +1026,43 @@ export function ConfiguratorShell({
             </strong>
           </div>
           <div className="summary-metric compact">
+            <span className="summary-metric-label">Transport</span>
+            <strong className="summary-metric-value">
+              {includeInstallation
+                ? "Inclus"
+                : deliveryQuote.status === "ready"
+                  ? formatCurrency(deliverySubtotal)
+                  : deliveryQuote.status === "loading"
+                    ? "Calcul..."
+                    : deliveryQuote.status === "error"
+                      ? "Erreur"
+                      : "Adresse"}
+            </strong>
+          </div>
+          <div className="summary-metric compact">
             <span className="summary-metric-label">Boites</span>
             <strong className="summary-metric-value">
               {estimate.boxesRequired}
             </strong>
           </div>
+          <div className="summary-metric compact">
+            <span className="summary-metric-label">Distance</span>
+            <strong className="summary-metric-value">
+              {includeInstallation
+                ? "0 km"
+                : deliveryQuote.status === "ready"
+                  ? `${deliveryQuote.distanceKm.toFixed(1)} km`
+                  : "--"}
+            </strong>
+          </div>
           <div className="summary-metric compact quote-metric--total">
             <span className="summary-metric-label">Total</span>
             <strong className="summary-metric-value">
-              {formatCurrency(projectTotal)}
+              {totalReady ? formatCurrency(projectTotal) : "A calculer"}
             </strong>
           </div>
         </div>
+        <p className="summary-note">{deliveryNote}</p>
         <p className="summary-note">
           Base de calcul : <strong>{estimate.billableAreaSqFt.toFixed(1)} pi²</strong>
           {" "}facturable • <strong>{estimate.totalTiles} tuiles</strong> •{" "}
@@ -1578,7 +1719,13 @@ function buildProjectQuote(input: {
   materialSubtotal: number;
   installationIncluded: boolean;
   installationSubtotal: number;
+  clientAddress: string;
+  deliveryIncluded: boolean;
+  deliverySubtotal: number;
+  deliveryDistanceKm: number | null;
+  deliveryOriginAddress: string;
   projectTotal: number;
+  totalReady: boolean;
   complexityLabel: string;
   garageDoorEnabled: boolean;
   garageDoorWidth: number;
@@ -1600,7 +1747,17 @@ function buildProjectQuote(input: {
     input.installationIncluded
       ? `Sous-total pose: ${formatCurrency(input.installationSubtotal)}`
       : "Pose: non incluse",
-    `Total avant taxes: ${formatCurrency(input.projectTotal)}`,
+    input.clientAddress.trim()
+      ? `Adresse client: ${input.clientAddress.trim()}`
+      : "Adresse client: a confirmer",
+    input.deliveryIncluded
+      ? `Transport: inclus avec la pose depuis ${input.deliveryOriginAddress}`
+      : input.deliveryDistanceKm !== null
+        ? `Transport: ${formatCurrency(input.deliverySubtotal)} (${input.deliveryDistanceKm.toFixed(1)} km depuis ${input.deliveryOriginAddress})`
+        : `Transport: calcul requis depuis ${input.deliveryOriginAddress}`,
+    input.totalReady
+      ? `Total avant taxes: ${formatCurrency(input.projectTotal)}`
+      : "Total avant taxes: a calculer avec le transport",
     `Complexite chantier: ${input.complexityLabel}`,
     input.garageDoorEnabled
       ? `Porte de garage principale: oui (${input.garageDoorWidth} ${input.unit}, offset ${input.garageDoorOffset} ${input.unit})`
