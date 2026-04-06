@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
-const ORIGIN_ADDRESS = "1335 QC-263 Nord, Princeville, Quebec, Canada";
+const ORIGIN_ADDRESS = "1335 Route 263 Nord, Princeville, Quebec, Canada";
+const ORIGIN_COORDINATES: Coordinates = {
+  lat: 46.180166,
+  lon: -71.8851799,
+  label: ORIGIN_ADDRESS,
+};
 const DELIVERY_RATE_PER_KM = 1.5;
 const GEOCODER_BASE_URL = "https://nominatim.openstreetmap.org/search";
 const ROUTER_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
@@ -27,10 +32,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const [origin, destination] = await Promise.all([
-      geocodeAddress(ORIGIN_ADDRESS),
-      geocodeAddress(address),
-    ]);
+    const origin = ORIGIN_COORDINATES;
+    const destination = await geocodeAddress(address);
     const distanceKm = await fetchDrivingDistanceKm(origin, destination);
     const transportSubtotal = roundCurrency(distanceKm * DELIVERY_RATE_PER_KM);
 
@@ -52,38 +55,42 @@ export async function POST(request: Request) {
 }
 
 async function geocodeAddress(address: string): Promise<Coordinates> {
-  const params = new URLSearchParams({
-    q: address,
-    format: "jsonv2",
-    limit: "1",
-    addressdetails: "1",
-    countrycodes: "ca",
-  });
-  const response = await fetch(`${GEOCODER_BASE_URL}?${params.toString()}`, {
-    headers: REQUEST_HEADERS,
-    cache: "no-store",
-  });
+  for (const candidate of buildGeocodeCandidates(address)) {
+    const params = new URLSearchParams({
+      q: candidate,
+      format: "jsonv2",
+      limit: "1",
+      addressdetails: "1",
+      countrycodes: "ca",
+    });
+    const response = await fetch(`${GEOCODER_BASE_URL}?${params.toString()}`, {
+      headers: REQUEST_HEADERS,
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error("Le service de geocodage est temporairement indisponible.");
+    if (!response.ok) {
+      throw new Error("Le service de geocodage est temporairement indisponible.");
+    }
+
+    const results = (await response.json()) as Array<{
+      lat: string;
+      lon: string;
+      display_name: string;
+    }>;
+    const firstResult = results[0];
+
+    if (!firstResult) {
+      continue;
+    }
+
+    return {
+      lat: Number(firstResult.lat),
+      lon: Number(firstResult.lon),
+      label: firstResult.display_name,
+    };
   }
 
-  const results = (await response.json()) as Array<{
-    lat: string;
-    lon: string;
-    display_name: string;
-  }>;
-  const firstResult = results[0];
-
-  if (!firstResult) {
-    throw new Error("Adresse introuvable. Verifie le code postal et la ville.");
-  }
-
-  return {
-    lat: Number(firstResult.lat),
-    lon: Number(firstResult.lon),
-    label: firstResult.display_name,
-  };
+  throw new Error("Adresse introuvable. Verifie le numero civique, la ville et le code postal.");
 }
 
 async function fetchDrivingDistanceKm(
@@ -125,4 +132,66 @@ function roundCurrency(value: number) {
 
 function roundToOneDecimal(value: number) {
   return Number(value.toFixed(1));
+}
+
+function buildGeocodeCandidates(address: string) {
+  const compactAddress = normalizeSpacing(address);
+  const normalizedAddress = normalizeCanadianAddress(compactAddress);
+  const candidates = [
+    compactAddress,
+    normalizedAddress,
+    appendSegment(normalizedAddress, "Quebec"),
+    appendSegment(normalizedAddress, "Canada"),
+    appendSegment(appendSegment(normalizedAddress, "Quebec"), "Canada"),
+  ];
+
+  return [...new Set(candidates.map(normalizeSpacing).filter((value) => value.length > 0))];
+}
+
+function normalizeCanadianAddress(address: string) {
+  const segments = address
+    .split(",")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return address;
+  }
+
+  const [streetSegment, ...restSegments] = segments;
+
+  return [
+    expandStreetDirections(streetSegment),
+    ...restSegments.map(expandProvinceAbbreviations),
+  ].join(", ");
+}
+
+function expandStreetDirections(segment: string) {
+  return segment
+    .replace(/\bN\b\.?/gi, "Nord")
+    .replace(/\bS\b\.?/gi, "Sud")
+    .replace(/\bE\b\.?/gi, "Est")
+    .replace(/\bO\b\.?/gi, "Ouest")
+    .replace(/\bW\b\.?/gi, "West");
+}
+
+function expandProvinceAbbreviations(segment: string) {
+  return segment
+    .replace(/\bQC\b/gi, "Quebec")
+    .replace(/\bPQ\b/gi, "Quebec")
+    .replace(/\bON\b/gi, "Ontario")
+    .replace(/\bNB\b/gi, "New Brunswick")
+    .replace(/\bNS\b/gi, "Nova Scotia");
+}
+
+function appendSegment(address: string, segment: string) {
+  if (new RegExp(`\\b${segment}\\b`, "i").test(address)) {
+    return address;
+  }
+
+  return `${address}, ${segment}`;
+}
+
+function normalizeSpacing(value: string) {
+  return value.replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ").trim();
 }
