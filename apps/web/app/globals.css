@@ -194,14 +194,17 @@ select {
 
 .workspace-main {
   display: grid;
-  grid-template-columns: minmax(232px, 0.72fr) minmax(0, 1.86fr) minmax(216px, 0.62fr);
-  grid-template-areas: "controls canvas catalog";
+  grid-template-columns: minmax(0, 2.08fr) minmax(284px, 0.78fr);
+  grid-template-areas: "canvas side";
   gap: 16px;
   align-items: start;
 }
 
 .workspace-sidepanels {
-  display: contents;
+  grid-area: side;
+  display: grid;
+  gap: 16px;
+  align-content: start;
 }
 
 .workspace-panel {
@@ -209,7 +212,7 @@ select {
 }
 
 .workspace-panel--controls {
-  grid-area: controls;
+  grid-area: auto;
 }
 
 .workspace-panel--canvas {
@@ -217,7 +220,7 @@ select {
 }
 
 .workspace-panel--catalog {
-  grid-area: catalog;
+  grid-area: auto;
 }
 
 .page-header {
@@ -712,16 +715,45 @@ select {
 }
 
 .canvas-workspace-shell {
-  position: relative;
   display: grid;
-  gap: 0;
+  grid-template-columns: minmax(228px, 252px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
   min-width: 0;
+}
+
+.canvas-utility-dock {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.workspace-inline-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.workspace-inline-card--tools {
+  gap: 12px;
+}
+
+.workspace-inline-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.desktop-dimension-grid {
+  grid-template-columns: 1fr;
 }
 
 .canvas-surface {
   position: relative;
   aspect-ratio: 16 / 10;
-  min-height: 620px;
+  min-height: 700px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
@@ -755,11 +787,20 @@ select {
   box-shadow: var(--shadow-lg);
 }
 
+.canvas-floating-panel--inline {
+  width: 100%;
+}
+
 .tool-rail {
   display: grid;
   gap: 8px;
   align-content: start;
   width: 92px;
+}
+
+.tool-rail--inline {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .tool-rail-button {
@@ -873,6 +914,30 @@ select {
 .tool-rail-swatch-label {
   font-size: 10px;
   line-height: 1.2;
+}
+
+.quote-option {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quote-option label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.quote-option select {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
 }
 
 .preset-strip {
@@ -1918,7 +1983,11 @@ select {
 
 @media (max-width: 1360px) {
   .workspace-main {
-    grid-template-columns: minmax(220px, 0.68fr) minmax(0, 1.68fr) minmax(204px, 0.58fr);
+    grid-template-columns: minmax(0, 1.92fr) minmax(270px, 0.74fr);
+  }
+
+  .canvas-surface {
+    min-height: 660px;
   }
 }
 
@@ -1956,8 +2025,11 @@ select {
     grid-template-columns: 1fr;
     grid-template-areas:
       "canvas"
-      "controls"
-      "catalog";
+      "side";
+  }
+
+  .workspace-sidepanels {
+    grid-template-columns: 1fr;
   }
 
   .canvas-overlay-dock {
@@ -1984,8 +2056,12 @@ select {
     overflow: visible;
   }
 
+  .canvas-workspace-shell {
+    grid-template-columns: minmax(220px, 248px) minmax(0, 1fr);
+  }
+
   .canvas-surface {
-    min-height: 560px;
+    min-height: 620px;
   }
 }
 
@@ -2036,6 +2112,10 @@ select {
   .canvas-surface {
     aspect-ratio: auto;
     min-height: min(68svh, 520px);
+  }
+
+  .canvas-workspace-shell {
+    grid-template-columns: 1fr;
   }
 
   .canvas-overlay-dock {

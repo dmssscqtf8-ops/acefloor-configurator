@@ -304,109 +304,70 @@ export function ConfiguratorShell({
 
   const controlsPanelContent = (
     <div className="section-stack">
-      {!isMobileLayout ? (
+      {isMobileLayout ? (
         <section>
-          <h2 className="section-title">Dimensions</h2>
-          <div className="field-grid two-up field-grid--dimensions">
-            <DimensionField
-              id="room-width"
-              label="Largeur"
-              unit={unit}
-              value={roomWidth}
-              min={1}
-              onChange={setRoomWidth}
-            />
-
-            <DimensionField
-              id="room-length"
-              label="Longueur"
-              unit={unit}
-              value={roomLength}
-              min={1}
-              onChange={setRoomLength}
-            />
-          </div>
-
-          <div className="field" style={{ marginTop: 14 }}>
-            <label htmlFor="room-unit">Unité</label>
+          <h2 className="section-title">Seuil & edges</h2>
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label htmlFor="garage-door-enabled">Porte de garage</label>
             <select
-              id="room-unit"
-              value={unit}
-              onChange={(event) =>
-                setUnit(event.target.value as "ft" | "in" | "cm" | "m")
-              }
+              id="garage-door-enabled"
+              value={garageDoorEnabled ? "yes" : "no"}
+              onChange={(event) => setGarageDoorEnabled(event.target.value === "yes")}
             >
-              <option value="ft">Pieds</option>
-              <option value="in">Pouces</option>
-              <option value="cm">Centimètres</option>
-              <option value="m">Mètres</option>
+              <option value="yes">Actif</option>
+              <option value="no">Inactif</option>
             </select>
           </div>
-        </section>
-      ) : null}
 
-      <section>
-        <h2 className="section-title">Seuil & edges</h2>
-        <div className="field" style={{ marginBottom: 14 }}>
-          <label htmlFor="garage-door-enabled">Porte de garage</label>
-          <select
-            id="garage-door-enabled"
-            value={garageDoorEnabled ? "yes" : "no"}
-            onChange={(event) => setGarageDoorEnabled(event.target.value === "yes")}
-          >
-            <option value="yes">Actif</option>
-            <option value="no">Inactif</option>
-          </select>
-        </div>
+          {garageDoorEnabled ? (
+            <>
+              <div className="field">
+                <label htmlFor="garage-door-width">Largeur ouverture ({unit})</label>
+                <input
+                  id="garage-door-width"
+                  min={0}
+                  step="0.1"
+                  max={roomWidth}
+                  type="number"
+                  inputMode={unit === "ft" ? "decimal" : "numeric"}
+                  value={garageDoorWidth}
+                  onChange={(event) =>
+                    setGarageDoorWidth(Number(event.target.value) || 0)
+                  }
+                />
+              </div>
 
-        {garageDoorEnabled ? (
-          <>
-            <div className="field">
-              <label htmlFor="garage-door-width">Largeur ouverture ({unit})</label>
-              <input
-                id="garage-door-width"
-                min={0}
-                step="0.1"
-                max={roomWidth}
-                type="number"
-                inputMode={unit === "ft" ? "decimal" : "numeric"}
-                value={garageDoorWidth}
-                onChange={(event) =>
-                  setGarageDoorWidth(Number(event.target.value) || 0)
-                }
-              />
-            </div>
-
-            <div className="field" style={{ marginTop: 14 }}>
-              <label htmlFor="garage-door-offset">
-                Position porte depuis le mur gauche ({unit})
-              </label>
-              <input
-                id="garage-door-offset"
-                min={0}
-                step="0.1"
-                max={Math.max(roomWidth - garageDoorWidth, 0)}
-                type="number"
-                inputMode={unit === "ft" ? "decimal" : "numeric"}
-                value={garageDoorOffset}
-                onChange={(event) =>
-                  setGarageDoorOffset(Number(event.target.value) || 0)
-                }
-              />
-            </div>
+              <div className="field" style={{ marginTop: 14 }}>
+                <label htmlFor="garage-door-offset">
+                  Position porte depuis le mur gauche ({unit})
+                </label>
+                <input
+                  id="garage-door-offset"
+                  min={0}
+                  step="0.1"
+                  max={Math.max(roomWidth - garageDoorWidth, 0)}
+                  type="number"
+                  inputMode={unit === "ft" ? "decimal" : "numeric"}
+                  value={garageDoorOffset}
+                  onChange={(event) =>
+                    setGarageDoorOffset(Number(event.target.value) || 0)
+                  }
+                />
+              </div>
 
               <p className="muted-copy" style={{ margin: "10px 0 0" }}>
                 Au bas, le montage demarre avec les edges directement sur la
                 porte. Les coupes se gerent de chaque cote de l'ouverture, sans
                 decrochement beton au seuil principal.
               </p>
-          </>
-        ) : (
-          <p className="muted-copy" style={{ margin: 0 }}>
-            Aucun seuil applique au calcul.
-          </p>
-        )}
-      </section>
+            </>
+          ) : (
+            <p className="muted-copy" style={{ margin: 0 }}>
+              Aucun seuil applique au calcul.
+            </p>
+          )}
+        </section>
+      ) : null}
 
       <section>
         <div className="inline-header">
@@ -531,25 +492,6 @@ export function ConfiguratorShell({
       </section>
 
       <section>
-        <h2 className="section-title">Soumission</h2>
-        <div className="field">
-          <label htmlFor="include-installation">Inclure la pose</label>
-          <select
-            id="include-installation"
-            value={includeInstallation ? "yes" : "no"}
-            onChange={(event) => setIncludeInstallation(event.target.value === "yes")}
-          >
-            <option value="no">Non</option>
-            <option value="yes">Oui, a 2,00 $ / pi²</option>
-          </select>
-        </div>
-        <p className="muted-copy" style={{ margin: "10px 0 0" }}>
-          La pose est calculee sur la surface facturable, donc a la tuile pleine
-          comme le materiau.
-        </p>
-      </section>
-
-      <section>
         <div className="inline-header">
           <h2 className="section-title" style={{ margin: 0 }}>
             Decrochements
@@ -655,9 +597,9 @@ export function ConfiguratorShell({
     </div>
   );
 
-  const colorToolPanel =
+  const colorToolPanelContent =
     activeToolPanel === "colors" ? (
-      <div className="canvas-floating-panel">
+      <>
         <div className="tool-rail-tabs">
           <button
             type="button"
@@ -722,11 +664,11 @@ export function ConfiguratorShell({
             );
           })}
         </div>
-      </div>
+      </>
     ) : null;
 
-  const toolRailButtons = (
-    <aside className="tool-rail" aria-label="Outils du plan">
+  const toolRailButtonItems = (
+    <>
       <ToolRailButton
         label="Couleur"
         icon={renderToolIcon("paint")}
@@ -800,8 +742,122 @@ export function ConfiguratorShell({
           setActiveToolPanel(null);
         }}
       />
-    </aside>
+    </>
   );
+
+  const desktopCanvasDock = !isMobileLayout ? (
+    <aside className="canvas-utility-dock" aria-label="Configuration rapide">
+      <section className="workspace-inline-card">
+        <div className="workspace-card-head workspace-card-head--tight">
+          <span className="workspace-card-kicker">Setup</span>
+          <strong>Dimensions garage</strong>
+        </div>
+        <div className="mobile-unit-strip" role="group" aria-label="Unite">
+          {unitOptions.map((option) => (
+            <button
+              key={`desktop-unit-${option.value}`}
+              type="button"
+              className={`mobile-unit-pill${unit === option.value ? " active" : ""}`}
+              onClick={() => setUnit(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <div className="mobile-dimension-grid desktop-dimension-grid">
+          <CompactDimensionField
+            id="desktop-room-width"
+            label="Largeur"
+            unit={unit}
+            value={roomWidth}
+            min={1}
+            onChange={setRoomWidth}
+          />
+          <CompactDimensionField
+            id="desktop-room-length"
+            label="Longueur"
+            unit={unit}
+            value={roomLength}
+            min={1}
+            onChange={setRoomLength}
+          />
+        </div>
+      </section>
+
+      <section className="workspace-inline-card">
+        <div className="workspace-card-head workspace-card-head--tight">
+          <span className="workspace-card-kicker">Seuil</span>
+          <strong>Porte principale</strong>
+        </div>
+        <div className="field">
+          <label htmlFor="desktop-garage-door-enabled">Porte de garage</label>
+          <select
+            id="desktop-garage-door-enabled"
+            value={garageDoorEnabled ? "yes" : "no"}
+            onChange={(event) => setGarageDoorEnabled(event.target.value === "yes")}
+          >
+            <option value="yes">Actif</option>
+            <option value="no">Inactif</option>
+          </select>
+        </div>
+        {garageDoorEnabled ? (
+          <div className="workspace-inline-stack">
+            <div className="field">
+              <label htmlFor="desktop-garage-door-width">Largeur ouverture ({unit})</label>
+              <input
+                id="desktop-garage-door-width"
+                min={0}
+                step="0.1"
+                max={roomWidth}
+                type="number"
+                inputMode={unit === "ft" ? "decimal" : "numeric"}
+                value={garageDoorWidth}
+                onChange={(event) =>
+                  setGarageDoorWidth(Number(event.target.value) || 0)
+                }
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="desktop-garage-door-offset">
+                Offset gauche ({unit})
+              </label>
+              <input
+                id="desktop-garage-door-offset"
+                min={0}
+                step="0.1"
+                max={Math.max(roomWidth - garageDoorWidth, 0)}
+                type="number"
+                inputMode={unit === "ft" ? "decimal" : "numeric"}
+                value={garageDoorOffset}
+                onChange={(event) =>
+                  setGarageDoorOffset(Number(event.target.value) || 0)
+                }
+              />
+            </div>
+          </div>
+        ) : (
+          <p className="muted-copy" style={{ margin: 0 }}>
+            Seuil inactif.
+          </p>
+        )}
+      </section>
+
+      <section className="workspace-inline-card workspace-inline-card--tools">
+        <div className="workspace-card-head workspace-card-head--tight">
+          <span className="workspace-card-kicker">Outils</span>
+          <strong>Peinture et export</strong>
+        </div>
+        <div className="tool-rail tool-rail--inline" aria-label="Outils du plan">
+          {toolRailButtonItems}
+        </div>
+        {colorToolPanelContent ? (
+          <div className="canvas-floating-panel canvas-floating-panel--inline">
+            {colorToolPanelContent}
+          </div>
+        ) : null}
+      </section>
+    </aside>
+  ) : null;
 
   const catalogPanelContent = (
     <div className="section-stack">
@@ -829,6 +885,17 @@ export function ConfiguratorShell({
 
       <section className="summary-panel summary-panel--compact quote-panel">
         <h2 className="summary-title">Soumission</h2>
+        <div className="quote-option">
+          <label htmlFor="quote-installation">Pose</label>
+          <select
+            id="quote-installation"
+            value={includeInstallation ? "yes" : "no"}
+            onChange={(event) => setIncludeInstallation(event.target.value === "yes")}
+          >
+            <option value="no">Non</option>
+            <option value="yes">Oui • 2,00 $ / pi²</option>
+          </select>
+        </div>
         <div className="summary-grid quote-grid">
           <div className="summary-metric compact">
             <span className="summary-metric-label">Materiau</span>
@@ -839,7 +906,7 @@ export function ConfiguratorShell({
           <div className="summary-metric compact">
             <span className="summary-metric-label">Pose</span>
             <strong className="summary-metric-value">
-              {includeInstallation ? formatCurrency(installationSubtotal) : "Option"}
+              {includeInstallation ? formatCurrency(installationSubtotal) : formatCurrency(0)}
             </strong>
           </div>
           <div className="summary-metric compact">
@@ -1094,6 +1161,7 @@ export function ConfiguratorShell({
           </div>
 
           <div className="canvas-workspace-shell">
+            {desktopCanvasDock}
             <div className="canvas-surface">
               <RoomCanvas
                 roomWidth={roomWidth}
@@ -1130,10 +1198,18 @@ export function ConfiguratorShell({
                 }
               />
             </div>
-            <div className="canvas-overlay-dock">
-              {colorToolPanel}
-              {toolRailButtons}
-            </div>
+            {isMobileLayout ? (
+              <div className="canvas-overlay-dock">
+                {colorToolPanelContent ? (
+                  <div className="canvas-floating-panel">
+                    {colorToolPanelContent}
+                  </div>
+                ) : null}
+                <aside className="tool-rail" aria-label="Outils du plan">
+                  {toolRailButtonItems}
+                </aside>
+              </div>
+            ) : null}
           </div>
         </section>
 
