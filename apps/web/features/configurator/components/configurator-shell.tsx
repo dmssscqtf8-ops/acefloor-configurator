@@ -1543,7 +1543,27 @@ function CompactDimensionField(props: DimensionFieldProps) {
       <div className="compact-dimension-card">
         <div className="compact-dimension-head">
           <span>{props.label}</span>
-          <strong>{formatFeetAndInchesLabel(props.value, props.min ?? 1)}</strong>
+          <div className="compact-dimension-summary" role="group" aria-label={props.label}>
+            <CompactSummaryInput
+              ariaLabel={`${props.label} pieds`}
+              value={parts.feet}
+              min={Math.max(Math.floor(props.min ?? 1), 0)}
+              onCommit={(nextFeet) =>
+                props.onChange(updateFeetPart(props.value, nextFeet, props.min ?? 1))
+              }
+            />
+            <span>pi</span>
+            <CompactSummaryInput
+              ariaLabel={`${props.label} pouces`}
+              value={parts.inches}
+              min={0}
+              max={11}
+              onCommit={(nextInches) =>
+                props.onChange(updateInchPart(props.value, nextInches, props.min ?? 1))
+              }
+            />
+            <span>po</span>
+          </div>
         </div>
         <div className="compact-dimension-parts">
           <CompactDimensionPartStepper
@@ -1627,7 +1647,7 @@ function CompactDimensionField(props: DimensionFieldProps) {
 type DimensionPartStepperProps = {
   id: string;
   label: string;
-  value: number;
+  value?: number;
   min?: number;
   max?: number;
   onDecrement: () => void;
@@ -1675,7 +1695,7 @@ function CompactDimensionPartStepper(props: DimensionPartStepperProps) {
   return (
     <div className="compact-dimension-part">
       <span className="compact-dimension-label">{props.label}</span>
-      <div className="compact-stepper-single">
+      <div className="compact-stepper-actions">
         <button
           type="button"
           className="compact-stepper-button"
@@ -1684,16 +1704,6 @@ function CompactDimensionPartStepper(props: DimensionPartStepperProps) {
         >
           -
         </button>
-        <input
-          id={props.id}
-          min={props.min}
-          max={props.max}
-          step={1}
-          type="number"
-          inputMode="numeric"
-          value={props.value}
-          onChange={(event) => props.onValueChange(Number(event.target.value) || 0)}
-        />
         <button
           type="button"
           className="compact-stepper-button"
@@ -1704,6 +1714,70 @@ function CompactDimensionPartStepper(props: DimensionPartStepperProps) {
         </button>
       </div>
     </div>
+  );
+}
+
+type CompactSummaryInputProps = {
+  ariaLabel: string;
+  value: number;
+  min?: number;
+  max?: number;
+  onCommit: (value: number) => void;
+};
+
+function CompactSummaryInput(props: CompactSummaryInputProps) {
+  const [draftValue, setDraftValue] = useState(String(props.value));
+
+  useEffect(() => {
+    setDraftValue(String(props.value));
+  }, [props.value]);
+
+  const commitDraft = (rawValue: string) => {
+    const cleanedValue = rawValue.replace(/[^\d]/g, "");
+
+    if (!cleanedValue) {
+      setDraftValue(String(props.value));
+      return;
+    }
+
+    const nextValue = clampWholeNumber(
+      Number(cleanedValue),
+      props.min,
+      props.max,
+    );
+
+    props.onCommit(nextValue);
+    setDraftValue(String(nextValue));
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      aria-label={props.ariaLabel}
+      className="compact-dimension-summary-input"
+      value={draftValue}
+      onFocus={(event) => event.currentTarget.select()}
+      onChange={(event) => {
+        const cleanedValue = event.target.value.replace(/[^\d]/g, "");
+
+        setDraftValue(cleanedValue);
+
+        if (!cleanedValue) {
+          return;
+        }
+
+        props.onCommit(
+          clampWholeNumber(Number(cleanedValue), props.min, props.max),
+        );
+      }}
+      onBlur={(event) => commitDraft(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.currentTarget.blur();
+        }
+      }}
+    />
   );
 }
 
@@ -1833,6 +1907,14 @@ function formatDimensionValue(value: number, unit: string): string {
 
 function roundToStep(value: number, step: number): number {
   return Math.round(value / step) * step;
+}
+
+function clampWholeNumber(value: number, min?: number, max?: number): number {
+  const integerValue = Math.max(Math.floor(value) || 0, 0);
+  const minValue = min ?? 0;
+  const maxValue = max ?? Number.POSITIVE_INFINITY;
+
+  return Math.min(Math.max(integerValue, minValue), maxValue);
 }
 
 type ToolIconName =

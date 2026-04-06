@@ -778,7 +778,8 @@ textarea {
 
 .canvas-surface {
   position: relative;
-  min-height: 820px;
+  height: clamp(640px, 72vh, 860px);
+  min-height: 640px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
@@ -1280,6 +1281,45 @@ textarea {
   letter-spacing: -0.02em;
 }
 
+.compact-dimension-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(216, 162, 61, 0.36);
+  background:
+    linear-gradient(180deg, rgba(244, 208, 111, 0.1), rgba(139, 90, 15, 0.08)),
+    rgba(216, 162, 61, 0.08);
+  color: #f5dba0;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-dimension-summary-input {
+  width: 3.2ch;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+
+.compact-dimension-summary-input:focus {
+  outline: none;
+}
+
+.compact-dimension-summary-input::-webkit-outer-spin-button,
+.compact-dimension-summary-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .compact-dimension-parts {
   display: grid;
   gap: 8px;
@@ -1303,6 +1343,12 @@ textarea {
   grid-template-columns: 38px minmax(0, 1fr) 38px;
   align-items: center;
   gap: 6px;
+}
+
+.compact-stepper-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 38px);
+  gap: 10px;
 }
 
 .compact-stepper-single input,
@@ -1456,6 +1502,7 @@ textarea {
 .room-canvas-root {
   width: 100%;
   height: 100%;
+  min-height: 100%;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -2199,6 +2246,7 @@ textarea {
   }
 
   .canvas-surface {
+    height: clamp(620px, 70vh, 760px);
     min-height: 760px;
   }
 
@@ -2286,6 +2334,7 @@ textarea {
   }
 
   .canvas-surface {
+    height: 620px;
     min-height: 620px;
   }
 }
@@ -2336,6 +2385,7 @@ textarea {
 
   .canvas-surface {
     aspect-ratio: auto;
+    height: min(68svh, 520px);
     min-height: min(68svh, 520px);
   }
 
