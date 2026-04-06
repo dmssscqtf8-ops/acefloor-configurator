@@ -8,6 +8,7 @@ const ORIGIN_COORDINATES: Coordinates = {
 };
 const DELIVERY_RATE_PER_KM = 1.5;
 const GEOCODER_BASE_URL = "https://nominatim.openstreetmap.org/search";
+const GEOCODER_FALLBACK_BASE_URL = "https://photon.komoot.io/api/";
 const ROUTER_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
 const REQUEST_HEADERS = {
   "Accept-Language": "fr-CA,fr;q=0.9,en;q=0.6",
@@ -55,48 +56,132 @@ export async function POST(request: Request) {
 }
 
 async function geocodeAddress(address: string): Promise<Coordinates> {
-  for (const candidate of buildGeocodeCandidates(address)) {
-    const params = new URLSearchParams({
-      q: candidate,
-      format: "jsonv2",
-      limit: "1",
-      addressdetails: "1",
-      countrycodes: "ca",
-    });
-    const response = await fetch(`${GEOCODER_BASE_URL}?${params.toString()}`, {
-      headers: REQUEST_HEADERS,
-      cache: "no-store",
-    });
+  const candidates = buildGeocodeCandidates(address);
 
-    if (!response.ok) {
-      throw new Error("Le service de geocodage est temporairement indisponible.");
+  for (const candidate of candidates) {
+    const match = await geocodeWithNominatim(candidate);
+
+    if (match) {
+      return match;
     }
+  }
 
-    const results = (await response.json()) as Array<{
-      lat: string;
-      lon: string;
-      display_name: string;
-    }>;
-    const firstResult = results[0];
+  for (const candidate of candidates) {
+    const match = await geocodeWithPhoton(candidate);
 
-    if (!firstResult) {
-      continue;
+    if (match) {
+      return match;
     }
-
-    return {
-      lat: Number(firstResult.lat),
-      lon: Number(firstResult.lon),
-      label: firstResult.display_name,
-    };
   }
 
   throw new Error("Adresse introuvable. Verifie le numero civique, la ville et le code postal.");
 }
 
-async function fetchDrivingDistanceKm(
-  origin: Coordinates,
-  destination: Coordinates,
-): Promise<number> {
+async function geocodeWithNominatim(address: string): Promise<Coordinates | null> {
+  const params = new URLSearchParams({
+    q: address,
+    format: "jsonv2",
+    limit: "1",
+    addressdetails: "1",
+    countrycodes: "ca",
+  });
+  const response = await fetch(`${GEOCODER_BASE_URL}?${params.toString()}`, {
+    headers: REQUEST_HEADERS,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const results = (await response.json()) as Array<{
+    lat: string;
+    lon: string;
+    display_name: string;
+  }>;
+  const firstResult = results[0];
+
+  if (!firstResult) {
+    return null;
+  }
+
+  return {
+    lat: Number(firstResult.lat),
+    lon: Number(firstResult.lon),
+    label: firstResult.display_name,
+  };
+}
+
+async function geocodeWithPhoton(address: string): Promise<Coordinates | null> {
+  const params = new URLSearchParams({
+    q: address,
+    limit: "1",
+    lang: "fr",
+  });
+  const response = await fetch(`${GEOCODER_FALLBACK_BASE_URL}?${params.toString()}`, {
+    headers: REQUEST_HEADERS,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as {
+    features?: Array<{
+      geometry?: { coordinates?: [number, number] };
+      properties?: {
+        name?: string;
+        housenumber?: string;
+        street?: string;
+        city?: string;
+        state?: string;
+        postcode?: string;
+        country?: string;
+      };
+    }>;
+  };
+  const feature = payload.features?.[0];
+  const coordinates = feature?.geometry?.coordinates;
+
+  if (!feature || !coordinates || coordinates.length < 2) {
+    return null;
+  }
+
+  const properties = feature.properties ?? {};
+  const label = [
+    properties.name,
+    [properties.housenumber, properties.street].filter(Boolean).join(" ").trim(),
+    properties.city,
+    properties.state,
+    properties.postcode,
+    properties.country,
+  ]
+    .filter((value) => value && value.length > 0)
+    .join(", ");
+
+  return {
+    lon: coordinates[0],
+    lat: coordinates[1],
+    label: label || address,
+  };
+}
+
+function buildGeocodeCandidates(address: string) {
+  const compactAddress = normalizeSpacing(address);
+  const normalizedAddress = normalizeCanadianAddress(compactAddress);
+  const candidates = [
+    compactAddress,
+    normalizedAddress,
+    appendSegment(normalizedAddress, "Quebec"),
+    appendSegment(normalizedAddress, "Canada"),
+    appendSegment(appendSegment(normalizedAddress, "Quebec"), "Canada"),
+  ];
+
+  return [...new Set(candidates.map(normalizeSpacing).filter((value) => value.length > 0))];
+}
+
+async function fetchDrivingDistanceKm(origin: Coordinates, destination: Coordinates): Promise<number> {
   const params = new URLSearchParams({
     alternatives: "false",
     overview: "false",
@@ -132,20 +217,6 @@ function roundCurrency(value: number) {
 
 function roundToOneDecimal(value: number) {
   return Number(value.toFixed(1));
-}
-
-function buildGeocodeCandidates(address: string) {
-  const compactAddress = normalizeSpacing(address);
-  const normalizedAddress = normalizeCanadianAddress(compactAddress);
-  const candidates = [
-    compactAddress,
-    normalizedAddress,
-    appendSegment(normalizedAddress, "Quebec"),
-    appendSegment(normalizedAddress, "Canada"),
-    appendSegment(appendSegment(normalizedAddress, "Quebec"), "Canada"),
-  ];
-
-  return [...new Set(candidates.map(normalizeSpacing).filter((value) => value.length > 0))];
 }
 
 function normalizeCanadianAddress(address: string) {
