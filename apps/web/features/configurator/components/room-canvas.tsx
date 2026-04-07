@@ -229,8 +229,8 @@ export function RoomCanvas(props: RoomCanvasProps) {
   ];
   const legendWidth = 252;
   const legendHeight = 34;
-  const legendX = Math.max(stageWidth - legendWidth - 18, offsetX + roomWidthPx - legendWidth);
-  const legendY = 16;
+  const legendX = 18;
+  const legendY = 18 + summaryLines.length * 18 + 6;
 
   const applyTilePaint = (tileKey: string) => {
     if (lastPaintedTileRef.current === tileKey) return;
