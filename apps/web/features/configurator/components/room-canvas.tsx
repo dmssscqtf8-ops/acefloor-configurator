@@ -185,6 +185,52 @@ export function RoomCanvas(props: RoomCanvasProps) {
   const garageDoorWidthPx = preview.garageDoor.openingWidthIn * scale;
   const garageDoorHeightPx = preview.garageDoor.setbackDepthIn * scale;
   const showLegend = stageWidth >= 760 && stageHeight >= 540;
+  const summaryLines = [
+    `Apercu 2D • ${props.selectedProductName} • ${preview.columns} x ${preview.rows} tuiles`,
+    ...(preview.cutout.areaSqFt > 0
+      ? [
+          `Piece en L • decoupe ${roundToTenth(
+            props.cutoutWidth,
+          )} x ${roundToTenth(props.cutoutLength)} ${props.unit}`,
+        ]
+      : []),
+    ...(preview.garageDoor.enabled
+      ? [
+          `Porte garage • seuil edge au bas • ${roundToTenth(
+            props.garageDoorWidth,
+          )} ${props.unit}`,
+        ]
+      : []),
+    ...(preview.exteriorDoors.length > 0
+      ? [`Portes additionnelles • ${preview.exteriorDoors.length}`]
+      : []),
+    `Outil • ${
+      props.interactionMode === "measure"
+        ? "Mesure"
+        : props.activePaintTool === "erase"
+          ? props.paintScope === "area"
+            ? "Effacer zone"
+            : "Effacer"
+          : props.paintScope === "area"
+            ? `Zone ${props.activePaintColor}`
+            : `Couleur ${props.activePaintColor}`
+    }`,
+  ];
+  const legendItems = [
+    { label: props.primaryColor, fill: primaryFill },
+    { label: props.secondaryColor, fill: secondaryFill },
+    {
+      label: props.activePaintTool === "erase" ? "Effacer" : "Brush",
+      fill:
+        props.activePaintTool === "erase"
+          ? "rgba(241, 210, 141, 0.18)"
+          : colorMap[props.activePaintColor] ?? primaryFill,
+    },
+  ];
+  const legendWidth = 252;
+  const legendHeight = 34;
+  const legendX = Math.max(stageWidth - legendWidth - 18, offsetX + roomWidthPx - legendWidth);
+  const legendY = 16;
 
   const applyTilePaint = (tileKey: string) => {
     if (lastPaintedTileRef.current === tileKey) return;
@@ -737,150 +783,57 @@ export function RoomCanvas(props: RoomCanvasProps) {
             </Group>
 
             <Group x={18} y={18}>
-              <Text
-                text={`Apercu 2D • ${props.selectedProductName} • ${preview.columns} x ${preview.rows} tuiles`}
-                fill="rgba(244,245,247,0.84)"
-                fontSize={13}
-              />
-              {preview.cutout.areaSqFt > 0 ? (
+              {summaryLines.map((line, index) => (
                 <Text
-                  y={18}
-                  text={`Piece en L • decoupe ${roundToTenth(
-                    props.cutoutWidth,
-                  )} x ${roundToTenth(props.cutoutLength)} ${props.unit}`}
-                  fill="rgba(241,210,141,0.88)"
-                  fontSize={12}
-                />
-              ) : null}
-              {preview.garageDoor.enabled ? (
-                <Text
-                  y={preview.cutout.areaSqFt > 0 ? 36 : 18}
-                  text={`Porte garage • seuil edge au bas • ${roundToTenth(
-                    props.garageDoorWidth,
-                  )} ${props.unit}`}
-                  fill="rgba(241,210,141,0.88)"
-                  fontSize={12}
-                />
-              ) : null}
-              {preview.exteriorDoors.length > 0 ? (
-                <Text
-                  y={
-                    preview.garageDoor.enabled
-                      ? preview.cutout.areaSqFt > 0
-                        ? 54
-                        : 36
-                      : preview.cutout.areaSqFt > 0
-                        ? 36
-                        : 18
+                  key={`${line}-${index}`}
+                  y={index * 18}
+                  text={line}
+                  fill={
+                    index === 0
+                      ? "rgba(244,245,247,0.84)"
+                      : line.startsWith("Porte garage")
+                        ? "rgba(241,210,141,0.88)"
+                        : line.startsWith("Portes additionnelles") ||
+                            line.startsWith("Outil")
+                          ? "rgba(126, 208, 255, 0.9)"
+                          : "rgba(241,210,141,0.88)"
                   }
-                  text={`Portes additionnelles • ${preview.exteriorDoors.length}`}
-                  fill="rgba(126, 208, 255, 0.9)"
-                  fontSize={12}
+                  fontSize={index === 0 ? 13 : 12}
                 />
-              ) : null}
-              <Text
-                y={
-                  preview.exteriorDoors.length > 0
-                    ? preview.garageDoor.enabled
-                      ? preview.cutout.areaSqFt > 0
-                        ? 72
-                        : 54
-                      : preview.cutout.areaSqFt > 0
-                        ? 54
-                        : 36
-                    : preview.garageDoor.enabled
-                      ? preview.cutout.areaSqFt > 0
-                        ? 54
-                        : 36
-                      : preview.cutout.areaSqFt > 0
-                        ? 36
-                        : 18
-                }
-                text={`Outil • ${
-                  props.interactionMode === "measure"
-                    ? "Mesure"
-                    : props.activePaintTool === "erase"
-                      ? props.paintScope === "area"
-                        ? "Effacer zone"
-                        : "Effacer"
-                      : props.paintScope === "area"
-                        ? `Zone ${props.activePaintColor}`
-                        : `Couleur ${props.activePaintColor}`
-                }`}
-                fill="rgba(126, 208, 255, 0.9)"
-                fontSize={12}
-              />
+              ))}
             </Group>
 
             {showLegend ? (
-              <Group x={stageWidth - 198} y={stageHeight - 116}>
+              <Group x={legendX} y={legendY}>
                 <Rect
-                  width={180}
-                  height={98}
-                  fill="rgba(6,8,12,0.82)"
+                  width={legendWidth}
+                  height={legendHeight}
+                  fill="rgba(6,8,12,0.76)"
                   stroke="rgba(255,255,255,0.08)"
                   strokeWidth={1}
-                  cornerRadius={16}
-                />
-                <Rect
-                  x={14}
-                  y={16}
-                  width={14}
-                  height={14}
-                  fill={primaryFill}
                   cornerRadius={999}
-                  stroke="rgba(255,255,255,0.18)"
-                  strokeWidth={1}
                 />
-                <Text
-                  x={38}
-                  y={15}
-                  text={props.primaryColor}
-                  fill="rgba(244,245,247,0.82)"
-                  fontSize={13}
-                />
-                <Rect
-                  x={14}
-                  y={42}
-                  width={14}
-                  height={14}
-                  fill={secondaryFill}
-                  cornerRadius={999}
-                  stroke="rgba(255,255,255,0.18)"
-                  strokeWidth={1}
-                />
-                <Text
-                  x={38}
-                  y={41}
-                  text={props.secondaryColor}
-                  fill="rgba(244,245,247,0.82)"
-                  fontSize={13}
-                />
-                <Rect
-                  x={14}
-                  y={68}
-                  width={14}
-                  height={14}
-                  fill={
-                    props.activePaintTool === "erase"
-                      ? "rgba(241, 210, 141, 0.18)"
-                      : colorMap[props.activePaintColor] ?? primaryFill
-                  }
-                  cornerRadius={999}
-                  stroke="rgba(255,255,255,0.18)"
-                  strokeWidth={1}
-                />
-                <Text
-                  x={38}
-                  y={67}
-                  text={
-                    props.activePaintTool === "erase"
-                      ? "Effacer"
-                      : `Brush • ${props.activePaintColor}`
-                  }
-                  fill="rgba(244,245,247,0.82)"
-                  fontSize={12}
-                />
+                {legendItems.map((item, index) => (
+                  <Group key={`${item.label}-${index}`} x={14 + index * 78} y={0}>
+                    <Rect
+                      x={0}
+                      y={legendHeight / 2 - 6}
+                      width={12}
+                      height={12}
+                      fill={item.fill}
+                      cornerRadius={999}
+                      stroke="rgba(255,255,255,0.18)"
+                      strokeWidth={1}
+                    />
+                    <Text
+                      x={18}
+                      y={legendHeight / 2 - 7}
+                      text={item.label}
+                      fill="rgba(244,245,247,0.82)"
+                      fontSize={11}
+                    />
+                  </Group>
+                ))}
               </Group>
             ) : null}
           </Layer>
