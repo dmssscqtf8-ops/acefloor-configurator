@@ -260,7 +260,7 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
 }));
 
 function normalizeSupportedUnit(value: Unit): Unit {
-  if (value === "in" || value === "cm") {
+  if (value !== "ft") {
     return "ft";
   }
 

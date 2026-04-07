@@ -126,7 +126,6 @@ export function ConfiguratorShell({
   ] as const;
   const unitOptions = [
     { value: "ft", label: "Pi / po" },
-    { value: "m", label: "M" },
   ] as const;
   const orderedProducts = productSelectionOrder
     .map((id) => catalogProducts.find((product) => product.id === id))
@@ -154,7 +153,7 @@ export function ConfiguratorShell({
   }, []);
 
   useEffect(() => {
-    if (unit === "in" || unit === "cm") {
+    if (unit !== "ft") {
       setUnit("ft");
     }
   }, [setUnit, unit]);
