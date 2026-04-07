@@ -138,7 +138,7 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
         garageDoorOffset: Math.max(value, 0),
       }),
     ),
-  setUnit: (value) => set({ unit: value }),
+  setUnit: (value) => set({ unit: normalizeSupportedUnit(value) }),
   setSelectedProductId: (value) => set({ selectedProductId: value, paintedTileColors: {} }),
   setPrimaryColor: (value) => set({ primaryColor: value, activePaintColor: value }),
   setSecondaryColor: (value) => set({ secondaryColor: value }),
@@ -258,6 +258,14 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
       ),
     })),
 }));
+
+function normalizeSupportedUnit(value: Unit): Unit {
+  if (value === "in" || value === "cm") {
+    return "ft";
+  }
+
+  return value;
+}
 
 function normalizeRoomGeometry(
   state: Pick<

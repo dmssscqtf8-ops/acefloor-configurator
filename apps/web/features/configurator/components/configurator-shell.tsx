@@ -126,8 +126,6 @@ export function ConfiguratorShell({
   ] as const;
   const unitOptions = [
     { value: "ft", label: "Pi / po" },
-    { value: "in", label: "Pouces" },
-    { value: "cm", label: "CM" },
     { value: "m", label: "M" },
   ] as const;
   const orderedProducts = productSelectionOrder
@@ -154,6 +152,12 @@ export function ConfiguratorShell({
     mediaQuery.addListener(syncMobileState);
     return () => mediaQuery.removeListener(syncMobileState);
   }, []);
+
+  useEffect(() => {
+    if (unit === "in" || unit === "cm") {
+      setUnit("ft");
+    }
+  }, [setUnit, unit]);
 
   useEffect(() => {
     if (!initialProductId) return;
