@@ -1299,10 +1299,19 @@ textarea {
 }
 
 .compact-dimension-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.compact-dimension-segment {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 10px;
+  min-height: 34px;
+  padding: 0 10px;
   border-radius: 999px;
   border: 1px solid rgba(216, 162, 61, 0.36);
   background:
@@ -1312,10 +1321,12 @@ textarea {
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  cursor: text;
 }
 
 .compact-dimension-summary-input {
-  width: 3.2ch;
+  width: 100%;
+  max-width: 4ch;
   min-width: 0;
   padding: 0;
   border: 0;

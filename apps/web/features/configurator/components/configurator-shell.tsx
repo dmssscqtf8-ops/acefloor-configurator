@@ -1549,25 +1549,29 @@ function CompactDimensionField(props: DimensionFieldProps) {
         <div className="compact-dimension-head">
           <span>{props.label}</span>
           <div className="compact-dimension-summary" role="group" aria-label={props.label}>
-            <CompactSummaryInput
-              ariaLabel={`${props.label} pieds`}
-              value={parts.feet}
-              min={Math.max(Math.floor(props.min ?? 1), 0)}
-              onCommit={(nextFeet) =>
-                props.onChange(updateFeetPart(props.value, nextFeet, props.min ?? 1))
-              }
-            />
-            <span>pi</span>
-            <CompactSummaryInput
-              ariaLabel={`${props.label} pouces`}
-              value={parts.inches}
-              min={0}
-              max={11}
-              onCommit={(nextInches) =>
-                props.onChange(updateInchPart(props.value, nextInches, props.min ?? 1))
-              }
-            />
-            <span>po</span>
+            <label className="compact-dimension-segment">
+              <CompactSummaryInput
+                ariaLabel={`${props.label} pieds`}
+                value={parts.feet}
+                min={Math.max(Math.floor(props.min ?? 1), 0)}
+                onCommit={(nextFeet) =>
+                  props.onChange(updateFeetPart(props.value, nextFeet, props.min ?? 1))
+                }
+              />
+              <span>pi</span>
+            </label>
+            <label className="compact-dimension-segment">
+              <CompactSummaryInput
+                ariaLabel={`${props.label} pouces`}
+                value={parts.inches}
+                min={0}
+                max={11}
+                onCommit={(nextInches) =>
+                  props.onChange(updateInchPart(props.value, nextInches, props.min ?? 1))
+                }
+              />
+              <span>po</span>
+            </label>
           </div>
         </div>
         <div className="compact-dimension-parts">
